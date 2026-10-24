@@ -107,6 +107,7 @@
   }
   function nm(l) { return l ? (l.name || l.sku || l.barcode || ('Row ' + l.row)) : ''; }
   function isDone(l) { return l.qty <= 0 || l.done >= l.qty || l.status === 'SHORT'; }
+  function dupBlocked(l) { return !!(l && l.dup && l.dup.level === 'BLOCK' && !l.dup.approved); }
   function verb() { return S.cur && S.cur.type === 'INWARD' ? 'RECEIVED' : 'PICKED'; }
 
   /* ===================== setup ===================== */
@@ -173,7 +174,8 @@
       return '<div class="card" data-doc="' + esc(d.doc) + '"><div class="dh"><b>' + esc(d.doc) + '</b><span class="chip ' + cls + '">' + esc(d.status) + '</span></div>' +
         '<div class="prog"><div class="bar" style="width:' + pct + '%"></div></div>' +
         '<div class="muted">' + d.doneLines + '/' + d.lines + ' lines · ' + d.done + '/' + d.qty + ' qty' + (admin && d.assignedTo ? ' · 👤 ' + esc(d.assignedTo) : '') +
-        (d.missing ? ' · ⚠️ sheet me data nahi' : '') + '</div></div>';
+        (d.missing ? ' · ⚠️ sheet me data nahi' : '') + '</div>' +
+        (d.dup ? '<div class="dupb">⛔ ' + d.dup + ' line DUPLICATE — Admin approval ke bina pick nahi hoga</div>' : '') + '</div>';
     }).join('') || '<div class="empty">' + (t === 'PICK' ? 'Koi pick slip assign nahi hai' : 'Koi inward assign nahi hai') + '<br><span class="muted">Admin Assign tab me naam daale, phir ⟳</span></div>';
   }
 
@@ -216,10 +218,16 @@
         : (c.opts && c.opts.CAPTURE_BATCH ? '<span>Batch <b>label se record</b>' + (l.capBatch ? ' (' + esc(l.capBatch) + ')' : '') + '</span>' : '');
       var kv = (l.mrp !== '' ? '<span>MRP <b>₹' + esc(l.mrp) + '</b></span>' : '') + (l.weight ? '<span>Wt <b>' + esc(l.weight) + '</b></span>' : '') + batch +
         (l.keyword ? '<span>Keyword <b>' + esc(l.keyword) + '</b></span>' : '');
-      return '<div class="card ln' + (dn ? ' done' : '') + '"><div class="grow"><div><span class="chip ' + cls + '">' + st + '</span> <b>' + l.done + ' / ' + l.qty + '</b></div>' +
+      var blocked = dupBlocked(l), dp = '';
+      if (l.dup && !dn) {
+        dp = blocked ? '<div class="dupb">⛔ DUPLICATE: ' + esc(l.dup.msg) + '<br><button class="btn dupok" data-approve="' + l.row + '">Admin approve</button></div>'
+          : l.dup.approved ? '<div class="dupa">✔ Duplicate approved: ' + esc(l.dup.by) + '</div>'
+          : '<div class="dupw">⚠️ ' + esc(l.dup.msg) + '</div>';
+      }
+      return '<div class="card ln' + (dn ? ' done' : '') + (blocked ? ' dupcard' : '') + '"><div class="grow"><div><span class="chip ' + cls + '">' + st + '</span> <b>' + l.done + ' / ' + l.qty + '</b></div>' +
         '<div class="nm">' + esc(nm(l)) + '</div><div class="kv">' + kv + '</div>' +
-        '<div class="muted" style="font-size:12px;margin-top:4px">' + esc([l.sku, l.barcode, l.supplier].filter(Boolean).join(' · ')) + '</div></div>' +
-        (dn ? '' : '<button class="cam" data-scan="' + l.row + '" aria-label="Is item ko scan karo">📷</button>') + '</div>';
+        '<div class="muted" style="font-size:12px;margin-top:4px">' + esc([l.sku, l.barcode, l.order, l.invoice, l.party].filter(Boolean).join(' · ')) + '</div>' + dp + '</div>' +
+        (dn || blocked ? '' : '<button class="cam" data-scan="' + l.row + '" aria-label="Is item ko scan karo">📷</button>') + '</div>';
     }).join('') || '<div class="empty">Koi line nahi</div>';
     header();
   }
@@ -311,6 +319,7 @@
   }
   function onGreen(d) {
     var sc = S.scan, l = lineByRow(d.row), q = S.qty, rem = PVEngine.remaining(l);
+    if (dupBlocked(l)) return onRed({ kind: 'DUPLICATE', row: d.row, read: d.read, checks: d.checks });
     if (d.full || rem <= 0) return onRed({ kind: 'EXTRA', row: d.row, read: d.read, checks: d.checks });
     sc.state = 'result';
     if (q > rem) {
@@ -341,6 +350,7 @@
     var title = inward ? 'GALAT MAAL — INWARD MAT KARO' : 'GALAT MAAL — MAT UTHAO', msg, reason;
     if (d.kind === 'NOTINDOC') { msg = 'Ye product is document me hai hi nahi.' + (d.read && d.read.barcode ? '\nBarcode: ' + d.read.barcode : ''); reason = 'Not in document'; }
     else if (d.kind === 'OTHER') { var o = lineByRow(d.other); msg = 'Ye "' + nm(o) + '" hai,\n"' + nm(l) + '" nahi.'; reason = 'Other item: ' + nm(o); }
+    else if (d.kind === 'DUPLICATE') { title = 'DUPLICATE — MAT ' + (inward ? 'LO' : 'UTHAO'); msg = nm(l) + '\n' + (l && l.dup ? l.dup.msg : '') + '\n\nAdmin approval ke bina count nahi hoga.'; reason = 'Duplicate: ' + (l && l.dup ? l.dup.msg : ''); }
     else if (d.kind === 'EXTRA') { title = 'EXTRA — ' + (inward ? 'QTY POORI HAI' : 'MAT UTHAO'); msg = nm(l) + '\nQty already poori hai (' + l.done + ' / ' + l.qty + '). Wapas rakho.'; reason = 'Extra — qty complete'; }
     else { msg = 'Slip se match nahi hua' + (l ? ' (' + nm(l) + ')' : '') + '.\nNeeche dekho kya alag hai 👇'; reason = PVEngine.reasons(d.checks) || 'Mismatch'; }
     feedback('bad');
@@ -401,7 +411,7 @@
     var b = item.body, here = S.cur && S.cur.type === b.type && S.cur.doc === b.doc;
     if (r.verdict !== 'GREEN') {
       feedback('warn');
-      toast('⚠️ Server ne ek count reject kiya (row ' + b.row + ') — dobara scan karo');
+      toast(r.kind === 'DUPLICATE' ? '⛔ DUPLICATE — count cancel: ' + (r.msg || '') : '⚠️ Server ne ek count reject kiya (row ' + b.row + ') — dobara scan karo');
       if (here && r.lines) { S.cur.lines = r.lines; applyPending(); if (!S.scan) renderDoc(); }
       return;
     }
@@ -433,9 +443,42 @@
         if (r.lines) { S.cur.lines = r.lines; applyPending(); }
         renderDoc();
         if (r.verdict === 'GREEN') { feedback('ok'); showResult('g', '✅', 'SAHI — ' + verb() + ' (manual)', nm(r.line) + '\n' + r.line.done + ' / ' + r.line.qty, null, [['close', 'OK']]); }
-        else if (r.verdict === 'RED') { feedback('bad'); showResult('r', '❌', 'MATCH NAHI HUA', r.kind === 'EXTRA' ? 'Qty already poori hai.' : (PVEngine.reasons(r.decision && r.decision.checks) || 'Details slip se match nahi'), r.decision && r.decision.checks, [['close', 'OK']]); }
+        else if (r.verdict === 'RED') { feedback('bad'); showResult('r', '❌', r.kind === 'DUPLICATE' ? 'DUPLICATE' : 'MATCH NAHI HUA', r.kind === 'DUPLICATE' ? (r.msg || '') + '\nPehle Admin approve kare.' : r.kind === 'EXTRA' ? 'Qty already poori hai.' : (PVEngine.reasons(r.decision && r.decision.checks) || 'Details slip se match nahi'), r.decision && r.decision.checks, [['close', 'OK']]); }
         else { feedback('warn'); showResult('a', '⚠️', 'Poori details chahiye', r.kind === 'QTY' ? 'Sirf ' + r.remaining + ' baaki hai.' : 'Batch / product naam / MRP / weight sab bharo.', r.decision && r.decision.checks, [['close', 'OK']]); }
       }).catch(function (e) { toast('⚠️ ' + e.message); }).then(function () { busy(false); });
+  }
+
+  /* ===================== duplicate approval (ADMIN only) ===================== */
+  function askAdmin(msg) {
+    return new Promise(function (resolve) {
+      var d = document.createElement('div');
+      d.className = 'sheet';
+      d.innerHTML = '<div class="pn"><h1>Admin approval</h1><p style="white-space:pre-line">' + esc(msg) + '</p>' +
+        '<label>Admin naam</label><select id="aaName">' + S.users.map(function (n) { return '<option>' + esc(n) + '</option>'; }).join('') + '</select>' +
+        '<label>Admin PIN</label><input id="aaPin" type="password" inputmode="numeric" autocomplete="off">' +
+        '<div class="row" style="margin-top:16px"><button class="btn" data-a="0">Cancel</button><button class="btn p grow" data-a="1">Approve</button></div></div>';
+      d.onclick = function (e) {
+        var b = e.target.closest('[data-a]'); if (!b) return;
+        var out = b.getAttribute('data-a') === '1' ? { name: d.querySelector('#aaName').value, pin: d.querySelector('#aaPin').value.trim() } : null;
+        if (out && !out.pin) return toast('Admin PIN daalo');
+        document.body.removeChild(d); resolve(out);
+      };
+      document.body.appendChild(d);
+    });
+  }
+  function approveDup(row) {
+    var l = lineByRow(row); if (!l || !l.dup) return;
+    var msg = nm(l) + '\n' + l.dup.msg + '\n\nKya ye sach me naya dispatch hai (partial delivery / naya order)? Approve karne ke baad hi pick hoga. Ye ScanLog me aapke naam se likha jayega.';
+    var p = S.user && S.user.role === 'ADMIN'
+      ? ask(msg, 'Haan, approve').then(function (ok) { return ok ? { name: S.user.name, pin: S.user.pin } : null; })
+      : askAdmin(msg);
+    p.then(function (a) {
+      if (!a) return;
+      busy('Approve ho raha hai…');
+      api('approveDup', { type: S.cur.type, doc: S.cur.doc, row: row, approver: a.name, approverPin: a.pin })
+        .then(function (r) { S.cur.lines = r.lines; applyPending(); renderDoc(); toast('✔ Approved — ab scan kar sakte ho'); })
+        .catch(function (e) { toast('⚠️ ' + e.message); }).then(function () { busy(false); });
+    });
   }
 
   /* ===================== close doc / settings ===================== */
@@ -493,7 +536,10 @@
     $('qMinus').onclick = function () { setQty(S.qty - 1); };
     $('qPlus').onclick = function () { setQty(S.qty + 1); };
     $('btnScan').onclick = function () { startScan({ mode: 'item', target: 0 }); };
-    $('lineList').onclick = function (e) { var b = e.target.closest('[data-scan]'); if (b) startScan({ mode: 'item', target: Number(b.getAttribute('data-scan')) }); };
+    $('lineList').onclick = function (e) {
+      var a = e.target.closest('[data-approve]'); if (a) return approveDup(Number(a.getAttribute('data-approve')));
+      var b = e.target.closest('[data-scan]'); if (b) startScan({ mode: 'item', target: Number(b.getAttribute('data-scan')) });
+    };
     $('btnStop').onclick = stopScan;
     $('btnTorch').onclick = function () { if (!S.scan) return; S.scan.torch = !S.scan.torch; try { N.torch(S.scan.torch); } catch (e) { } };
     $('rActs').onclick = function (e) { var b = e.target.closest('[data-act]'); if (b) resultAction(b.getAttribute('data-act')); };
