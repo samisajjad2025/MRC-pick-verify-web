@@ -409,9 +409,10 @@
     if (d.state === 'COOLDOWN') msg = '✅ Ho gaya — box hatao, agla box dikhao';
     else if (d.state === 'IDLE') msg = 'Label camera ke saamne rakho';
     else if (d.kind === 'CONFIRMING') msg = 'Match ho raha hai… phone hilao mat';
-    else if (d.kind === 'NOID') msg = 'Product ka naam / batch wala hissa bhi dikhao';
+    else if (d.kind === 'NOID') msg = 'Batch / product code wali line (coding) bhi dikhao';
     else if (d.kind === 'AMBIGUOUS') msg = 'Do items same lag rahe hain — product naam wala hissa dikhao';
     else if (d.kind === 'TURN') msg = '🔄 Dabba ghumao — ' + (d.missing || []).join(', ') + ' wali side dikhao';
+    else if (d.checks && d.checks.code && d.checks.code.s === 'UNCLEAR') msg = 'Product code saaf nahi padha — coding wali line ke paas lao, roshni me';
     else msg = 'Label padh raha hai…';
     $('sMsg').textContent = msg;
     var need = d.need || 3, on = d.progress || 0, dots = '';

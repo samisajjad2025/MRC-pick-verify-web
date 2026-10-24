@@ -26,7 +26,8 @@ var PVEngine = (function () {
     WIN_MULTI: 12,          // frames looked at when MRP / batch / weight are on different faces of the box
     NEED_FIT: 3,            // frames that must agree for GREEN
     NEED_BAD: 3,            // frames that must show mismatch for RED
-    NEED_NOTINDOC: 2        // frames with a barcode that is not in this document
+    NEED_NOTINDOC: 2,       // frames with a barcode that is not in this document
+    CODE_CHECK: true        // product code printed on the box, e.g. "(731774)" / "# 726771": a different code = wrong product
   };
   function opts(o) {
     var r = {}, k;
@@ -60,7 +61,10 @@ var PVEngine = (function () {
     return {
       codes: list, normCodes: list.map(normCode).filter(Boolean), gs1: gs1, text: T,
       mrps: extractMRPs(T), weights: extractWeights(T, true), allWeights: extractWeights(T, false), packs: extractPacks(T),
-      batches: extractBatches(T), spaced: spaced(T), flat: flatNorm(T)
+      batches: extractBatches(T), spaced: spaced(T), flat: flatNorm(T), codeCands: extractCodes(T),
+      combo: /\+|FREE/.test(T),
+      // shipper carton printed once for many variants (tick box / "refer coding panel for brand name"): printed names prove nothing
+      carton: /WHOLESALE\s*PACK|NOT\s*FOR\s*RETAIL\s*SALE|REFER\s*(?:TO\s*)?(?:THE\s*)?CODING|FOR\s*BRAND\s*NAME/.test(T)
     };
   }
 
@@ -92,6 +96,16 @@ var PVEngine = (function () {
     return false;
   }
 
+  /* real product barcode number: EAN-8 / EAN-13 / ITF-14 with a correct check digit */
+  function isGTIN(s) {
+    s = String(s == null ? '' : s).trim();
+    if (!/^(\d{8}|\d{13}|\d{14})$/.test(s)) return false;
+    var d = s.split('').map(Number), c = d.pop(), sum = 0;
+    d.reverse().forEach(function (x, i) { sum += x * (i % 2 ? 1 : 3); });
+    return (10 - sum % 10) % 10 === c;
+  }
+  /* A barcode can prove a WRONG product only when the sheet has a barcode number for this item and the box shows a
+   * real product barcode. Transporter stickers, QR codes, courier numbers etc. are ignored. */
   function checkBarcode(l, ctx) {
     var exp = splitCodes(l.barcode);
     if (trim(l.sku)) exp.push(trim(l.sku));
@@ -100,7 +114,9 @@ var PVEngine = (function () {
     for (var i = 0; i < ctx.codes.length; i++)
       for (var j = 0; j < exp.length; j++)
         if (codeMatch(ctx.codes[i], exp[j])) return res('MATCH', E, ctx.codes[i]);
-    return res('MISMATCH', E, String(ctx.codes[0]).replace(/\u001d/g, '·'));
+    if (!exp.some(isGTIN)) return na();
+    var g = ctx.codes.filter(isGTIN);
+    return g.length ? res('MISMATCH', E, g[0]) : na();
   }
 
   function parseGS1(raw) {
@@ -155,22 +171,30 @@ var PVEngine = (function () {
   }
   function fmtMoney(v) { return '₹' + (Math.round(v) === v ? v : v.toFixed(2)); }
 
+  /* "₹0.66/ml", "₹ 66.00 per 100 ml" = unit sale price, never the MRP */
+  function unitPriceAfter(rest) { return /^\s*(?:\/|PER(?![A-Z]))\s*(?:\d|(?:ML|G|GM|GMS|GRAMS?|KGS?|L|LTRS?|LITRES?|LITERS?|CC)(?![A-Z]))/.test(rest); }
   function extractMRPs(T) {
-    var out = [], m;
+    var out = [], m, n, pointer = false;
     var NUM = /\d[\d,]*(?:\.\d{1,2})?(?!\d)(?![.,]\d)(?!\s*(?:KGS?|KILOS?|GMS?|GRAMS?|G|MG|ML|LTRS?|LITRES?|L)(?![A-Z]))/g;
     var KW = /(?:^|[^A-Z])(M\s*[.,]?\s*R\s*[.,]?\s*P|MRF|NRP)/g;
     while ((m = KW.exec(T))) {
       var seg = T.substr(KW.lastIndex, 45);
-      var cands = (seg.match(NUM) || []).map(function (s) {
-        return { s: s, v: parseFloat(s.replace(/,/g, '')), dec: /\.\d{2}$/.test(s) };
-      }).filter(function (c) { return c.v > 0; });
-      if (cands.length) out.push({ primary: cands[0], cands: cands });
+      if (/(?:^|[^A-Z])(?:SEE|REFER|PRINTED|MENTIONED|BELOW|OVERLEAF)(?![A-Z])/.test(seg.split(/\d/)[0])) { pointer = true; continue; }  // "MRP ... see below"
+      var cands = [];
+      NUM.lastIndex = 0;
+      while ((n = NUM.exec(seg))) {
+        if (unitPriceAfter(seg.substr(NUM.lastIndex))) continue;
+        var v = parseFloat(n[0].replace(/,/g, ''));
+        if (v > 0) cands.push({ s: n[0], v: v, dec: /\.\d{2}$/.test(n[0]) });
+      }
+      if (cands.length) out.push({ primary: cands[0], cands: cands, lab: true });
     }
-    if (!out.length) {
+    if (!out.length) {                                  // no "MRP <value>": take ₹ / Rs prices (inkjet coding line)
       var RS = /(?:^|[^A-Z])(?:RS|INR|₹)\s*[.:\/-]?\s*(\d[\d,]*(?:\.\d{1,2})?)/g;
       while ((m = RS.exec(T))) {
+        if (unitPriceAfter(T.substr(RS.lastIndex))) continue;
         var s = m[1];
-        out.push({ primary: { s: s, v: parseFloat(s.replace(/,/g, '')), dec: /\.\d{2}$/.test(s) }, cands: [] });
+        out.push({ primary: { s: s, v: parseFloat(s.replace(/,/g, '')), dec: /\.\d{2}$/.test(s) }, cands: [], lab: pointer });
       }
     }
     return out;
@@ -196,6 +220,9 @@ var PVEngine = (function () {
       if (hit) return res('MATCH', E, eq(hit.primary.v) ? hit.primary.s : exp.toFixed(2));
       var p = occ[0].primary;
       if (rupeeGlitch(p.s, exp)) return res('UNCLEAR', E, p.s, 'MRP saaf nahi');
+      // a bare ₹ price with no "MRP" word near it may be another price (single-unit price on a combo, offer price):
+      // it can confirm the MRP but never prove a wrong MRP
+      if (!occ.some(function (x) { return x.lab; })) return res('UNCLEAR', E, p.s, 'MRP likha hua hissa frame me lao');
       return res('MISMATCH', E, p.s);
     }
     var re = new RegExp('(?:^|[^\\d])' + exp.toFixed(2).replace('.', '\\.') + '(?!\\d)');
@@ -238,11 +265,10 @@ var PVEngine = (function () {
   /* carton: "1 KG X 25", "25 X 1 KG", "(500 G X 40)" -> weight of one unit */
   function extractPacks(T) {
     var t = fixNum(T), out = [], m;
-    var a = new RegExp('(\\d+(?:\\.\\d+)?)\\s*' + UNIT_SRC + '\\s*[X×*]\\s*\\d+(?![\\d.])', 'g');
-    var b = new RegExp('(?:^|[^\\d.])\\d+\\s*[X×*]\\s*(\\d+(?:\\.\\d+)?)\\s*' + UNIT_SRC + '(?![A-Z])', 'g');
-    [a, b].forEach(function (re) {
-      while ((m = re.exec(t))) { var u = unit(m[2]); if (u) out.push({ v: parseFloat(m[1]) * u.f, d: u.d, s: m[1] + ' ' + m[2] }); }
-    });
+    var a = new RegExp('(\\d+(?:\\.\\d+)?)\\s*' + UNIT_SRC + '\\s*[X×*]\\s*(\\d+)(?![\\d.])', 'g');
+    var b = new RegExp('(?:^|[^\\d.])(\\d+)\\s*[X×*]\\s*(\\d+(?:\\.\\d+)?)\\s*' + UNIT_SRC + '(?![A-Z])', 'g');
+    while ((m = a.exec(t))) { var u = unit(m[2]); if (u) out.push({ v: parseFloat(m[1]) * u.f, d: u.d, s: m[1] + ' ' + m[2], n: Number(m[3]) }); }
+    while ((m = b.exec(t))) { var u2 = unit(m[3]); if (u2) out.push({ v: parseFloat(m[2]) * u2.f, d: u2.d, s: m[2] + ' ' + m[3], n: Number(m[1]) }); }
     return out;
   }
   function checkWeight(l, ctx, o) {
@@ -256,7 +282,19 @@ var PVEngine = (function () {
     if (ctx.gs1.weight) return eq(ctx.gs1.weight) || caseTotal(ctx.gs1.weight) ? res('MATCH', raw, ctx.gs1.weight.s) : res('MISMATCH', raw, ctx.gs1.weight.s);
     if (ctx.packs.length) {                                    // carton print: per-unit weight decides
       var ph = ctx.packs.filter(eq)[0];
-      return ph ? res('MATCH', raw, ph.s + ' (carton)') : res('MISMATCH', raw, ctx.packs[0].s);
+      var parts = [], seen = {};
+      ctx.packs.forEach(function (p) { var k = p.d + p.v; if (!seen[k]) { seen[k] = 1; parts.push(p); } });
+      if (parts.length > 1 && ctx.combo) {                     // "400 ml + FREE 90 ml": combo / promo pack
+        var sum = { v: 0, d: parts[0].d };
+        parts.forEach(function (p) { sum.v += p.d === sum.d ? p.v : NaN; });
+        var both = parts.map(function (p) { return p.s; }).join(' + ');
+        if (eq(sum)) return res('MATCH', raw, both + ' (combo)');
+        if (ph && /FREE|\+|COMBO|OFFER|PROMO/i.test(String(l.name))) return res('MATCH', raw, both + ' (combo)');
+        return res('MISMATCH', raw, both + ' (combo)');
+      }
+      if (ph) return res('MATCH', raw, ph.s + ' (carton)');
+      var tot = ctx.packs.filter(function (p) { return cs > 1 && p.n === cs && eq({ v: p.v * p.n, d: p.d }); })[0];
+      return tot ? res('MATCH', raw, tot.s + ' x ' + tot.n + ' (carton)') : res('MISMATCH', raw, ctx.packs[0].s);
     }
     if (ctx.weights.length) {
       var hit = ctx.weights.filter(eq)[0] || ctx.weights.filter(caseTotal)[0];
@@ -292,6 +330,7 @@ var PVEngine = (function () {
     }
     if (ex.length) return res('MISMATCH', E, ctx.batches[0]);          // a batch was clearly read and it is different
     if (e.length >= o.BATCH_FREE_MIN && new RegExp(' ' + e.split('').join(' ?') + ' ').test(ctx.spaced)) return res('MATCH', E, E);
+    if (e.length === 4 && /[A-Z]/i.test(E) && /\d/.test(E) && ctx.spaced.indexOf(' ' + e + ' ') !== -1) return res('MATCH', E, E);  // short batch "A112": whole word only
     return res('UNCLEAR', E, '', 'Batch nahi dikha');
   }
 
@@ -314,16 +353,44 @@ var PVEngine = (function () {
     return miss.length ? res('UNCLEAR', kw, toks.filter(function (t) { return miss.indexOf(t) === -1; }).join(' '), 'Keyword nahi dikha: ' + miss.join(' '))
       : res('MATCH', kw, kw);
   }
+  /* numbers printed as a product code: "(731774)", "# 726771", "ITEM CODE: 100234", "MATERIAL NO 731774" */
+  function extractCodes(T) {
+    var out = [], m;
+    var re1 = /\(\s*(\d[\d ]{3,14}\d)\s*\)/g;
+    var re2 = /(#|(?:^|[^A-Z])(?:ITEM|MATERIAL|MAT|ARTICLE|ART|PRODUCT|PROD|SKU|SAP|FG)\s*(?:CODE|NO|NUMBER|NUM)?)\s*[.:#\-]*\s*(\d[\d ]{3,14}\d)(?!\d)/g;
+    while ((m = re1.exec(T))) out.push(m[1].replace(/ /g, ''));
+    while ((m = re2.exec(T))) {
+      if (m[1] === '#' && /(?:BATCH|BTCH|LOT|B\s*[.,]?\s*N\s*[O0]\.?)\s*$/.test(T.substr(Math.max(0, m.index - 12), 12))) continue;
+      out.push(m[2].replace(/ /g, '').replace(/^0+/, ''));
+    }
+    return uniq(out.map(function (x) { return x.replace(/^0+/, ''); }));
+  }
+  var LOOKALIKE = ['17', '38', '56', '68', '08', '89', '06', '09', '25'];
+  function lookAlike(a, b) {                       // differs only in one digit that dot print / camera often confuse
+    if (a.length !== b.length) return false;
+    var diff = [];
+    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) diff.push([a[i], b[i]].sort().join(''));
+    return diff.length === 1 && LOOKALIKE.indexOf(diff[0]) !== -1;
+  }
   /* SAP Material / product code printed as TEXT on the box (not only in a barcode). Needs 5+ chars with 4+ digits,
-   * found as a separate word, so it never matches inside a longer number (EAN, FSSAI, batch). Proof only, never required. */
-  function checkCode(l, ctx) {
-    var e = flatNorm(l.sku);
+   * found as a separate word, so it never matches inside a longer number (EAN, FSSAI, batch).
+   * Found -> proof of identity. A different code in a code place ("(731780)" on a 731774 line) -> wrong product. */
+  function checkCode(l, ctx, o) {
+    var raw = trim(l.sku), e = flatNorm(raw);
+    var num = /^\d+$/.test(e);
+    if (num) e = e.replace(/^0+/, '');
     if (e.length < 5 || (e.match(/\d/g) || []).length < 4) return na();
-    return new RegExp(' ' + e.split('').join(' ?') + ' ').test(ctx.spaced) ? res('MATCH', trim(l.sku), trim(l.sku)) : na();
+    if (new RegExp(' ' + (num ? '(?:0 ?)*' : '') + e.split('').join(' ?') + ' ').test(ctx.spaced)) return res('MATCH', raw, raw);
+    if (!o.CODE_CHECK || !num) return na();
+    var c = (ctx.codeCands || []).filter(function (x) { return x.length === e.length; });
+    if (!c.length) return na();
+    var near = c.filter(function (x) { return lookAlike(x, e); });
+    return near.length ? res('UNCLEAR', raw, near[0], 'Product code saaf nahi padha') : res('MISMATCH', raw, c[0]);
   }
   function checkName(l, ctx) {
     var toks = nameTokens(l.name);
     if (!toks.length) return na();
+    if (ctx.carton) return res('NA', toks.join(' '), '', 'Wholesale carton: naam se pehchan nahi — code / batch / keyword chahiye');
     var found = toks.filter(function (t) { return ctx.flat.indexOf(flatNorm(t)) !== -1; });
     return found.length === toks.length ? res('MATCH', toks.join(' '), found.join(' ')) : res('UNCLEAR', toks.join(' '), found.join(' '));
   }
@@ -347,15 +414,16 @@ var PVEngine = (function () {
       barcode: checkBarcode(l, ctx),
       keyword: checkKeyword(l, ctx),
       name: checkName(l, ctx),
-      code: checkCode(l, ctx),
+      code: checkCode(l, ctx, o),
       mrp: sk.mrp ? res('NA', '', '', 'box pe nahi') : checkMRP(l, ctx, o),
       weight: sk.weight ? res('NA', '', '', 'box pe nahi') : checkWeight(l, ctx, o),
       batch: sk.batch ? res('NA', '', '', 'box pe nahi') : checkBatch(l, ctx, o)
     };
   }
   function hasIdentity(c) { return c.barcode.s === 'MATCH' || c.batch.s === 'MATCH' || c.keyword.s === 'MATCH' || c.name.s === 'MATCH' || (c.code && c.code.s === 'MATCH'); }
-  function hasMismatch(c) { return REQ.some(function (k) { return c[k].s === 'MISMATCH'; }); }
-  function reqOk(c) { return REQ.every(function (k) { var s = c[k].s; return s === 'MATCH' || s === 'NA' || s === 'CAPTURE'; }); }
+  function hasMismatch(c) { return REQ.some(function (k) { return c[k].s === 'MISMATCH'; }) || (!!c.code && c.code.s === 'MISMATCH'); }
+  function codeDoubt(c) { return !!c.code && c.code.s === 'UNCLEAR'; }
+  function reqOk(c) { return !codeDoubt(c) && REQ.every(function (k) { var s = c[k].s; return s === 'MATCH' || s === 'NA' || s === 'CAPTURE'; }); }
   function isFit(c, o) {
     o = opts(o);
     if (!reqOk(c)) return false;
@@ -463,7 +531,7 @@ var PVEngine = (function () {
     }
     var kind = 'READING', bc = last.best ? last.chk[last.best] : null, missing = [];
     if (recent.filter(function (e) { return e.ambiguous; }).length >= 2) kind = 'AMBIGUOUS';
-    else if (bc && reqOk(bc) && !hasIdentity(bc)) kind = 'NOID';
+    else if (bc && !hasIdentity(bc) && !hasMismatch(bc) && (reqOk(bc) || REQ.some(function (k) { return bc[k].s === 'MATCH'; }))) kind = 'NOID';
     else if (last.chosen && cnt[last.chosen]) kind = 'CONFIRMING';
     else if (bc && hasIdentity(bc) && !hasMismatch(bc)) {         // right product, some detail is on another face
       var LB = { mrp: 'MRP', weight: 'Weight', batch: 'Batch', keyword: 'Keyword', barcode: 'Barcode' };
@@ -481,7 +549,7 @@ var PVEngine = (function () {
   /* this frame proves THIS product only (a batch shared by two products is not proof) */
   function cleanFor(e, row, pk, lines) {
     var c = e.chk[row];
-    if (!c || !hasIdentity(c) || hasMismatch(c) || e.other || e.ambiguous) return false;
+    if (!c || !hasIdentity(c) || hasMismatch(c) || codeDoubt(c) || e.other || e.ambiguous) return false;
     var others = lines.filter(function (x) { return prodKey(x) !== pk && e.chk[x.row] && hasIdentity(e.chk[x.row]); });
     if (!others.length) return true;
     return strongId(c) && !others.some(function (x) { return strongId(e.chk[x.row]); });
@@ -529,16 +597,16 @@ var PVEngine = (function () {
   }
 
   function reasons(chk) {
-    var L = { barcode: 'Barcode', keyword: 'Keyword', mrp: 'MRP', weight: 'Weight', batch: 'Batch' };
+    var L = { barcode: 'Barcode', keyword: 'Keyword', mrp: 'MRP', weight: 'Weight', batch: 'Batch', code: 'Code' };
     if (!chk) return '';
-    return REQ.filter(function (k) { return chk[k].s === 'MISMATCH'; })
+    return REQ.concat(['code']).filter(function (k) { return chk[k] && chk[k].s === 'MISMATCH'; })
       .map(function (k) { return L[k] + ': slip ' + chk[k].exp + ' / box ' + (chk[k].read || '?'); }).join('; ');
   }
 
   return {
     DEF: DEF, opts: opts, buildCtx: buildCtx, evaluate: evaluate, isFit: isFit, evalFrame: evalFrame, decide: decide,
     judge: judge, reasons: reasons, lineHasIdentity: lineHasIdentity, remaining: remaining, parseGS1: parseGS1,
-    codeMatch: codeMatch, extractBatches: extractBatches, toNum: toNum, normBatch: normBatch, isNABatch: isNABatch
+    codeMatch: codeMatch, extractBatches: extractBatches, toNum: toNum, normBatch: normBatch, isNABatch: isNABatch, isGTIN: isGTIN
   };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = PVEngine;
