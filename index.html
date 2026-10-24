@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pick Verify</title>
+<style>
+:root{--bg:#f1f3f6;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#1d4ed8;--ok:#15803d;--bad:#dc2626;--warn:#d97706;--cam:45vh}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit}
+.hide{display:none!important}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:10px 12px;background:#0f172a;color:#fff;min-height:54px}
+header .t{flex:1;min-width:0;font-weight:800;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .t small{display:block;font-weight:500;font-size:12px;opacity:.7}
+.hbtn{background:rgba(255,255,255,.12);border:0;border-radius:10px;padding:8px 11px;font-size:16px;color:#fff}
+.sync{background:#f59e0b;color:#111;border:0;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:800}
+.wrap{padding:14px;max-width:640px;margin:0 auto}
+h1{font-size:22px;margin:4px 0 12px}
+h2{font-size:15px;margin:18px 4px 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+label{display:block;font-size:14px;color:var(--muted);margin:12px 0 6px}
+input,select{width:100%;font-size:18px;padding:13px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--brand)}
+.btn{border:0;border-radius:12px;padding:14px 16px;font-size:17px;font-weight:700;background:#e2e8f0;color:var(--ink)}
+.btn:active{transform:scale(.98)}
+.btn.p{background:var(--brand);color:#fff}
+.btn.w{width:100%;margin-top:14px}
+.btn.big{padding:18px;font-size:19px}
+.btn.ghost{background:transparent;color:var(--muted);text-decoration:underline;font-weight:500;font-size:14px;padding:10px}
+.row{display:flex;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted);font-size:14px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin:10px 0;border:2px solid transparent;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.card.done{border-color:#bbf7d0;opacity:.6}
+.tabs{display:flex;gap:8px;margin:2px 0 6px}
+.tab{flex:1;border:0;border-radius:12px;padding:12px;font-weight:800;background:#e2e8f0;color:#334155}
+.tab.on{background:var(--ink);color:#fff}
+.chip{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#e2e8f0;color:#334155;letter-spacing:.3px;vertical-align:middle}
+.chip.g{background:#dcfce7;color:var(--ok)}.chip.a{background:#fef3c7;color:#92400e}.chip.r{background:#fee2e2;color:#991b1b}.chip.b{background:#dbeafe;color:#1e40af}
+.prog{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.bar{height:100%;background:var(--ok);width:0;transition:width .3s}
+.dh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:18px}
+.ln{display:flex;gap:12px;align-items:flex-start}
+.ln .nm{font-weight:800;margin-top:4px}
+.kv{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;color:#334155;margin-top:6px}
+.kv b{color:var(--ink)}
+.cam{flex:none;width:58px;height:58px;border-radius:14px;border:0;background:#eef2ff;font-size:26px}
+.dock{position:sticky;bottom:0;display:flex;gap:10px;padding:12px 0 14px;background:linear-gradient(rgba(241,243,246,0),var(--bg) 30%)}
+.qty{display:flex;align-items:center;background:#fff;border-radius:14px;border:2px solid var(--line)}
+.qty button{border:0;background:none;font-size:28px;width:46px;height:62px}
+.qty span{min-width:34px;text-align:center;font-weight:800;font-size:20px}
+.scanbtn{flex:1;border:0;background:var(--brand);color:#fff;font-size:21px;font-weight:800;height:66px;border-radius:14px}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+.warnbox{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
+
+/* ---------- scan screen ---------- */
+#vScan{position:fixed;inset:0;background:#0b1220;color:#fff;z-index:10;display:flex;flex-direction:column}
+#camSpace{height:var(--cam);flex:none;position:relative;background:#000}
+#devCam{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:14px}
+#scanPanel{flex:1;overflow:auto;padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.sTop{display:flex;align-items:center;gap:8px}
+.sTop .tg{flex:1;min-width:0;font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbtn{background:#1e293b;border:0;border-radius:12px;padding:10px 13px;font-size:18px;color:#fff}
+.msg{font-size:18px;font-weight:700;min-height:26px}
+.dots{display:flex;gap:6px;margin-top:2px}.dots i{width:14px;height:14px;border-radius:50%;background:#334155;display:block}.dots i.on{background:#22c55e}
+table.f{width:100%;border-collapse:collapse;font-size:15px;background:#111a2e;border-radius:12px;overflow:hidden}
+table.f td{padding:9px 10px;border-bottom:1px solid #1e293b;vertical-align:top;word-break:break-word}
+table.f td:first-child{color:#94a3b8;width:22%}
+table.f td:last-child{width:34px;text-align:center}
+table.f tr.match td:nth-child(3){color:#86efac}
+table.f tr.mismatch td{background:#450a0a;color:#fecaca;font-weight:800}
+.qbadge{background:#1e293b;border-radius:10px;padding:6px 10px;font-weight:800}
+
+/* ---------- full screen result ---------- */
+.res{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#fff}
+.res.g{background:var(--ok)}.res.r{background:var(--bad)}.res.a{background:var(--warn)}
+.res .ico{font-size:96px;line-height:1}
+.res .tt{font-size:30px;font-weight:900;margin:12px 0 6px}
+.res .mm{font-size:19px;font-weight:600;white-space:pre-line;max-width:540px}
+.res table{width:100%;max-width:540px;margin:16px auto 6px;border-collapse:collapse;background:rgba(255,255,255,.15);border-radius:12px;overflow:hidden;font-size:15px;text-align:left}
+.res td,.res th{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.2)}
+.res th{font-size:12px;text-transform:uppercase;opacity:.85}
+.res tr.mismatch td{background:rgba(0,0,0,.3);font-weight:800}
+.res .acts{display:flex;flex-direction:column;gap:10px;width:100%;max-width:540px;margin-top:14px}
+.res .acts .btn{background:#fff;color:var(--ink);padding:17px;font-size:19px}
+.res .acts .btn.alt{background:rgba(255,255,255,.2);color:#fff}
+.res.r .ico{animation:shake .35s 3}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(15,23,42,.6);display:flex;align-items:flex-end;justify-content:center}
+.sheet .pn{background:#fff;width:100%;max-width:640px;border-radius:18px 18px 0 0;padding:18px 16px 22px;max-height:92vh;overflow:auto}
+#busy{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.8);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:17px;text-align:center;padding:20px}
+.spin{width:52px;height:52px;border:6px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;margin-bottom:16px}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;left:14px;right:14px;bottom:22px;z-index:60;background:#0f172a;color:#fff;padding:13px 16px;border-radius:12px;font-size:15px;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.on{opacity:1}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.sw input{width:auto;transform:scale(1.4)}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MRC Pick/IN">
+<meta name="theme-color" content="#0f172a">
+</head>
+<body>
+
+<header id="hdr">
+  <button class="hbtn hide" id="hBack" aria-label="Back">←</button>
+  <div class="t" id="hTitle">Pick Verify<small id="hSub"></small></div>
+  <button class="sync hide" id="hSync"></button>
+  <button class="hbtn hide" id="hRefresh" aria-label="Refresh">⟳</button>
+  <button class="hbtn hide" id="hMenu" aria-label="Settings">⚙</button>
+</header>
+
+<!-- SETUP -->
+<section id="vSetup" class="wrap hide">
+  <h1>App setup</h1>
+  <p class="muted">Google Sheet me menu <b>📦 Pick Verify → App setup QR</b> kholo aur ye button dabake QR scan karo.</p>
+  <button class="btn p w big" id="btnSetupQR">📷 Setup QR scan karo</button>
+  <button class="btn ghost w" id="btnSetupManual">QR nahi hai? Manually daalo</button>
+  <div id="setupManual" class="hide">
+    <label for="inUrl">Web app URL (/exec)</label><input id="inUrl" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+    <label for="inKey">API key</label><input id="inKey" autocomplete="off">
+    <button class="btn p w" id="btnSetupSave">Save & connect</button>
+  </div>
+</section>
+
+<!-- LOGIN -->
+<section id="vLogin" class="wrap hide">
+  <h1>Login</h1>
+  <label for="inUser">Naam</label><select id="inUser"></select>
+  <label for="inPin">PIN</label><input id="inPin" type="password" inputmode="numeric" autocomplete="off">
+  <button class="btn p w big" id="btnLogin">Login ▶</button>
+  <button class="btn ghost w" id="btnReSetup">Server badlo (setup)</button>
+</section>
+
+<!-- HOME -->
+<section id="vHome" class="wrap hide">
+  <div class="tabs"><button class="tab on" data-tab="PICK" id="tabPick">PICKING</button><button class="tab" data-tab="INWARD" id="tabInw">INWARD</button></div>
+  <div id="docList"></div>
+</section>
+
+<!-- DOC -->
+<section id="vDoc" class="wrap hide">
+  <div class="prog"><div class="bar" id="docBar"></div></div>
+  <div class="muted" id="docProg"></div>
+  <div id="docWarn"></div>
+  <div id="lineList"></div>
+  <div class="row" style="justify-content:space-between">
+    <button class="btn ghost" id="btnManual">Manual entry (Admin)</button>
+    <button class="btn ghost" id="btnClose">Document close karo</button>
+  </div>
+  <div class="dock">
+    <div class="qty"><button id="qMinus" aria-label="Kam">−</button><span id="qVal">1</span><button id="qPlus" aria-label="Zyada">+</button></div>
+    <button class="scanbtn" id="btnScan">📷 SCAN</button>
+  </div>
+</section>
+
+<!-- LIVE SCAN -->
+<section id="vScan" class="hide">
+  <div id="camSpace"><div id="devCam">camera</div></div>
+  <div id="scanPanel">
+    <div class="sTop">
+      <div class="tg" id="sTarget"></div>
+      <span class="qbadge" id="sQty"></span>
+      <button class="sbtn" id="btnTorch" aria-label="Torch">🔦</button>
+      <button class="sbtn" id="btnStop" aria-label="Band karo">✖</button>
+    </div>
+    <div class="msg" id="sMsg">Label camera ke saamne rakho</div>
+    <div class="dots" id="sDots"></div>
+    <table class="f" id="sTable"></table>
+    <div class="muted" id="sHint" style="color:#94a3b8">MRP, weight, batch aur product ka naam ek saath frame me dikhao. Roshni kam ho to 🔦.</div>
+  </div>
+</section>
+
+<!-- RESULT -->
+<div id="res" class="res hide">
+  <div class="ico" id="rIco"></div>
+  <div class="tt" id="rTitle"></div>
+  <div class="mm" id="rMsg"></div>
+  <table id="rTable"></table>
+  <div class="acts" id="rActs"></div>
+</div>
+
+<!-- MANUAL ENTRY -->
+<div id="dManual" class="sheet hide"><div class="pn">
+  <h1>Manual entry (Admin approval)</h1>
+  <p class="muted">Box pe jo likha hai wahi bharo. Slip se match hoga tabhi count hoga. ScanLog me MANUAL likha jayega.</p>
+  <label for="mLine">Item</label><select id="mLine"></select>
+  <label for="mName">Product naam / keyword (box pe)</label><input id="mName" autocomplete="off">
+  <label for="mMrp">MRP (₹)</label><input id="mMrp" inputmode="decimal" autocomplete="off">
+  <label for="mWeight">Weight (500 g / 1 kg / 1 L)</label><input id="mWeight" autocomplete="off">
+  <label for="mBatch">Batch</label><input id="mBatch" autocapitalize="characters" autocomplete="off">
+  <label for="mBarcode">Barcode (agar hai)</label><input id="mBarcode" inputmode="numeric" autocomplete="off">
+  <label for="mAdmin">Admin naam</label><select id="mAdmin"></select>
+  <label for="mAdminPin">Admin PIN</label><input id="mAdminPin" type="password" inputmode="numeric" autocomplete="off">
+  <div class="row" style="margin-top:16px"><button class="btn" id="mCancel">Cancel</button><button class="btn p grow" id="mOk">Verify & count</button></div>
+</div></div>
+
+<!-- SETTINGS -->
+<div id="dSet" class="sheet hide"><div class="pn">
+  <h1>Settings</h1>
+  <div class="sw"><div><b>Auto next box</b><div class="muted">GREEN ke baad tap nahi; box hatate hi agla scan</div></div><input type="checkbox" id="stAuto"></div>
+  <div class="sw"><div><b>Sound</b></div><input type="checkbox" id="stSound"></div>
+  <p class="muted" id="stInfo"></p>
+  <button class="btn w" id="stSync">Pending sync abhi bhejo</button>
+  <button class="btn w" id="stLogout">Logout</button>
+  <button class="btn w" id="stReset">Server setup dobara</button>
+  <button class="btn p w" id="stClose">Close</button>
+</div></div>
+
+<div id="busy" class="hide"><div class="spin"></div><div id="busyMsg"></div></div>
+<div id="toast"></div>
+
+<script src="lib/tesseract.min.js"></script>
+<script src="lib/zxing.min.js"></script>
+<script src="web-native.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
