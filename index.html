@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>MRCGZB Pick/IN</title>
 <style>
-:root{--bg:#f1f3f6;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#1d4ed8;--ok:#15803d;--bad:#dc2626;--warn:#d97706;--cam:45vh}
+:root{--bg:#eef2f7;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#2563eb;--brand2:#6d28d9;--ok:#15803d;--bad:#dc2626;--warn:#d97706;--cam:45vh;
+--grad:linear-gradient(135deg,#2563eb,#6d28d9);--shadow:0 1px 2px rgba(15,23,42,.06),0 4px 14px rgba(15,23,42,.06)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
 button{font:inherit;color:inherit}
 .hide{display:none!important}
-header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:10px 12px;background:#0f172a;color:#fff;min-height:54px}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(120deg,#0b1220 0%,#14204a 60%,#26206b 100%);color:#fff;min-height:58px;box-shadow:0 2px 10px rgba(2,6,23,.25)}
+.hlogo{width:32px;height:32px;flex:none;display:block}.hlogo svg,.logo svg{width:100%;height:100%;display:block}
 header .t{flex:1;min-width:0;font-weight:800;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 header .t small{display:block;font-weight:500;font-size:12px;opacity:.7}
 .hbtn{background:rgba(255,255,255,.12);border:0;border-radius:10px;padding:8px 11px;font-size:16px;color:#fff}
@@ -23,22 +25,24 @@ input,select{width:100%;font-size:18px;padding:13px 14px;border:2px solid var(--
 input:focus,select:focus{outline:none;border-color:var(--brand)}
 .btn{border:0;border-radius:12px;padding:14px 16px;font-size:17px;font-weight:700;background:#e2e8f0;color:var(--ink)}
 .btn:active{transform:scale(.98)}
-.btn.p{background:var(--brand);color:#fff}
+.btn.p{background:var(--grad);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.28)}
 .btn.w{width:100%;margin-top:14px}
 .btn.big{padding:18px;font-size:19px}
 .btn.ghost{background:transparent;color:var(--muted);text-decoration:underline;font-weight:500;font-size:14px;padding:10px}
 .row{display:flex;gap:10px;align-items:center}
 .grow{flex:1;min-width:0}
 .muted{color:var(--muted);font-size:14px}
-.card{background:var(--card);border-radius:14px;padding:14px;margin:10px 0;border:2px solid transparent;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.card{background:var(--card);border-radius:16px;padding:14px;margin:10px 0;border:2px solid transparent;box-shadow:var(--shadow)}
 .card.done{border-color:#bbf7d0;opacity:.6}
 .tabs{display:flex;gap:8px;margin:2px 0 6px}
-.tab{flex:1;border:0;border-radius:12px;padding:12px;font-weight:800;background:#e2e8f0;color:#334155}
-.tab.on{background:var(--ink);color:#fff}
+.tab{flex:1;border:0;border-radius:14px;padding:12px 6px;font-weight:800;background:#fff;color:#334155;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;gap:6px}
+.tab.on{background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#fff}
+.tabs.three .ti{display:none}.tabs.three .tab{font-size:15px;padding:12px 4px;gap:5px}
+.tab .cnt{background:#e2e8f0;color:#0f172a;border-radius:999px;font-size:12px;padding:1px 8px;min-width:22px}.tab.on .cnt{background:rgba(255,255,255,.2);color:#fff}
 .chip{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#e2e8f0;color:#334155;letter-spacing:.3px;vertical-align:middle}
 .chip.g{background:#dcfce7;color:var(--ok)}.chip.a{background:#fef3c7;color:#92400e}.chip.r{background:#fee2e2;color:#991b1b}.chip.b{background:#dbeafe;color:#1e40af}
 .prog{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin:8px 0 4px}
-.bar{height:100%;background:var(--ok);width:0;transition:width .3s}
+.bar{height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);width:0;transition:width .3s;border-radius:99px}
 .dh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:18px}
 .ln{display:flex;gap:12px;align-items:flex-start}
 .ln .nm{font-weight:800;margin-top:4px}
@@ -49,7 +53,7 @@ input:focus,select:focus{outline:none;border-color:var(--brand)}
 .qty{display:flex;align-items:center;background:#fff;border-radius:14px;border:2px solid var(--line)}
 .qty button{border:0;background:none;font-size:28px;width:46px;height:62px}
 .qty span{min-width:34px;text-align:center;font-weight:800;font-size:20px}
-.scanbtn{flex:1;border:0;background:var(--brand);color:#fff;font-size:21px;font-weight:800;height:66px;border-radius:14px}
+.scanbtn{flex:1;border:0;background:var(--grad);color:#fff;font-size:21px;font-weight:800;height:66px;border-radius:16px;box-shadow:0 8px 20px rgba(37,99,235,.35)}
 .empty{text-align:center;color:var(--muted);padding:40px 10px}
 .warnbox{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
 
@@ -101,6 +105,38 @@ table.f tr.mismatch td{background:#450a0a;color:#fecaca;font-weight:800}
 .card.dupcard{border-color:#fca5a5}
 .sw{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
 .sw input{width:auto;transform:scale(1.4)}
+/* ---------- brand / hero ---------- */
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:26px 8px 18px}
+.logo{width:76px;height:76px;filter:drop-shadow(0 10px 18px rgba(79,70,229,.35))}
+.hname{font-size:26px;font-weight:900;letter-spacing:-.3px}
+.htag{font-size:15px;color:var(--muted)}
+.whpill{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px;box-shadow:var(--shadow)}
+.whpill:empty{display:none}
+.panel{background:#fff;border-radius:20px;padding:6px 16px 18px;box-shadow:var(--shadow)}
+.trust{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 14px;margin:16px 0 4px;font-size:13px;color:var(--muted)}
+.how{display:flex;flex-direction:column;gap:10px;margin:6px 0 16px}
+.how div{display:flex;gap:12px;align-items:center;background:#fff;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);font-size:15px}
+.how b{flex:none;width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center}
+/* ---------- home ---------- */
+.hello{background:linear-gradient(135deg,#1d4ed8 0%,#4f46e5 55%,#7c3aed 100%);color:#fff;border-radius:20px;padding:16px 16px 14px;margin:2px 0 14px;box-shadow:0 10px 24px rgba(79,70,229,.3);position:relative;overflow:hidden}
+.hello:after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hello .hi{font-size:21px;font-weight:900}.hello .sub2{font-size:13px;opacity:.85;margin-top:2px}
+.stats{display:flex;gap:8px;margin-top:12px;position:relative;z-index:1}
+.stats div{flex:1;background:rgba(255,255,255,.14);border-radius:14px;padding:9px 10px}
+.stats b{display:block;font-size:24px;line-height:1.1}.stats span{font-size:12px;opacity:.9}
+.stats .alert{background:rgba(239,68,68,.9)}
+.card.doc{display:flex;gap:12px;align-items:flex-start;border-left:6px solid #3b82f6;padding-left:12px}
+.card.doc.st-prog{border-left-color:#f59e0b}.card.doc.st-done{border-left-color:#22c55e}.card.doc.st-short{border-left-color:#ef4444}.card.doc.st-un{border-left-color:#94a3b8}
+.dic{flex:none;width:44px;height:44px;border-radius:14px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:22px}
+.st-done .dic{background:#dcfce7}.st-prog .dic{background:#fef3c7}.st-short .dic{background:#fee2e2}
+.dmain{flex:1;min-width:0}
+.dmeta{font-size:13px;color:var(--muted);margin-top:2px}
+.dfoot{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}.dfoot .pct{font-weight:800;color:var(--ink)}
+/* ---------- document summary ---------- */
+.sumcard{background:#fff;border-radius:18px;padding:12px 14px;box-shadow:var(--shadow);margin-bottom:4px}
+.sumtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.sumtop .big{font-size:30px;font-weight:900;letter-spacing:-.5px}.sumtop .ty{font-size:13px;font-weight:800;color:#4f46e5;background:#eef2ff;border-radius:999px;padding:3px 10px}
+.unit{box-shadow:var(--shadow);border:0}.qty{border:0;box-shadow:var(--shadow)}
 .lact{display:flex;flex-direction:column;gap:8px;align-items:center;flex:none}
 .shortb{border:0;border-radius:10px;background:#fff7ed;color:#9a3412;font-size:12px;font-weight:800;padding:7px 6px;width:58px}
 .wrongc{margin-top:6px;font-size:12px;font-weight:800;color:#b91c1c}
@@ -134,7 +170,8 @@ table.rt td.bad{color:var(--bad);font-weight:800}
 
 <header id="hdr">
   <button class="hbtn hide" id="hBack" aria-label="Back">←</button>
-  <div class="t" id="hTitle">Pick Verify<small id="hSub"></small></div>
+  <span class="hlogo" id="hLogo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lgh" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><rect width="48" height="48" rx="13" fill="url(#lgh)"/><path d="M24 9.5l12.5 6.2v14.6L24 36.5l-12.5-6.2V15.7z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M11.5 15.7L24 22l12.5-6.3M24 22v14.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><circle cx="35.5" cy="34.5" r="8.2" fill="#22c55e" stroke="#fff" stroke-width="2.4"/><path d="M31.8 34.6l2.6 2.6 4.6-5.1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+  <div class="t" id="hTitle">MRCGZB Pick/IN<small id="hSub"></small></div>
   <button class="sync hide" id="hSync"></button>
   <button class="hbtn hide" id="hRefresh" aria-label="Refresh">⟳</button>
   <button class="hbtn hide" id="hMenu" aria-label="Settings">⚙</button>
@@ -142,8 +179,10 @@ table.rt td.bad{color:var(--bad);font-weight:800}
 
 <!-- SETUP -->
 <section id="vSetup" class="wrap hide">
-  <h1>App setup</h1>
-  <p class="muted">Google Sheet me menu <b>📦 Pick Verify → App setup QR</b> kholo aur ye button dabake QR scan karo.</p>
+  <div class="hero"><div class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lgs" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><rect width="48" height="48" rx="13" fill="url(#lgs)"/><path d="M24 9.5l12.5 6.2v14.6L24 36.5l-12.5-6.2V15.7z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M11.5 15.7L24 22l12.5-6.3M24 22v14.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><circle cx="35.5" cy="34.5" r="8.2" fill="#22c55e" stroke="#fff" stroke-width="2.4"/><path d="M31.8 34.6l2.6 2.6 4.6-5.1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="hname">MRCGZB Pick/IN</div>
+  <div class="htag">Camera se Picking + Inward check — galat maal count hi nahi hota</div></div>
+  <div class="how"><div><b>1</b><span>Laptop pe Sheet → menu <strong>📦 Pick Verify → App setup QR</strong></span></div>
+  <div><b>2</b>Neeche wala button dabao, QR camera ke saamne</div><div><b>3</b>Apna naam + PIN → kaam shuru</div></div>
   <button class="btn p w big" id="btnSetupQR">📷 Setup QR scan karo</button>
   <button class="btn ghost w" id="btnSetupManual">QR nahi hai? Manually daalo</button>
   <div id="setupManual" class="hide">
@@ -155,25 +194,29 @@ table.rt td.bad{color:var(--bad);font-weight:800}
 
 <!-- LOGIN -->
 <section id="vLogin" class="wrap hide">
-  <h1>Login</h1>
-  <div class="muted" id="loginWh"></div>
+  <div class="hero"><div class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lgl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><rect width="48" height="48" rx="13" fill="url(#lgl)"/><path d="M24 9.5l12.5 6.2v14.6L24 36.5l-12.5-6.2V15.7z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M11.5 15.7L24 22l12.5-6.3M24 22v14.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><circle cx="35.5" cy="34.5" r="8.2" fill="#22c55e" stroke="#fff" stroke-width="2.4"/><path d="M31.8 34.6l2.6 2.6 4.6-5.1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="hname" id="loginApp">MRCGZB Pick/IN</div>
+  <div class="whpill" id="loginWh"></div></div>
+  <div class="panel">
   <label for="inUser">Naam</label><select id="inUser"></select>
-  <label for="inPin">PIN</label><input id="inPin" type="password" inputmode="numeric" autocomplete="off">
-  <button class="btn p w big" id="btnLogin">Login ▶</button>
+  <label for="inPin">PIN</label><input id="inPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
+  <button class="btn p w big" id="btnLogin">Login ▶</button></div>
+  <div class="trust"><span>📷 Camera se check</span><span>🔒 PIN login</span><span>📵 Offline bhi chalta hai</span></div>
   <button class="btn ghost w" id="btnReSetup">Server badlo (setup)</button>
 </section>
 
 <!-- HOME -->
 <section id="vHome" class="wrap hide">
-  <div class="tabs"><button class="tab on" data-tab="PICK" id="tabPick">PICKING</button><button class="tab" data-tab="INWARD" id="tabInw">INWARD</button><button class="tab hide" id="tabRep">📊 REPORT</button></div>
+  <div id="hello"></div>
+  <div class="tabs"><button class="tab on" data-tab="PICK" id="tabPick"><span class="ti">🚚</span>PICKING<span class="cnt" id="cntPick"></span></button><button class="tab" data-tab="INWARD" id="tabInw"><span class="ti">📥</span>INWARD<span class="cnt" id="cntInw"></span></button><button class="tab hide" id="tabRep">📊 REPORT</button></div>
   <div id="docList"></div>
   <div id="repView" class="hide"></div>
 </section>
 
 <!-- DOC -->
 <section id="vDoc" class="wrap hide">
+  <div class="sumcard"><div class="sumtop"><span class="big" id="docPct">0%</span><span class="ty" id="docType"></span></div>
   <div class="prog"><div class="bar" id="docBar"></div></div>
-  <div class="muted" id="docProg"></div>
+  <div class="muted" id="docProg"></div></div>
   <div id="docWarn"></div>
   <div id="lineList"></div>
   <div class="row" style="justify-content:space-between">

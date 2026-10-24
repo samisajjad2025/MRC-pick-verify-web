@@ -39,7 +39,9 @@
   var ROLE_LABEL = { OWNER: 'Owner', GM: 'GM', ADMIN: 'GM', OPERATOR: 'Operator', SUPERVISOR: 'Supervisor' };
   function isApprover() { return !!S.user && /^(OWNER|GM|ADMIN)$/.test(S.user.role); }
   function seesAll() { return isApprover() || (!!S.user && S.user.role === 'OPERATOR'); }
-  function nat(fn) { try { if (N[fn]) return N[fn].apply(N, [].slice.call(arguments, 1)); } catch (e) { } }
+  function nat(fn, a, b) {                     // optional native features (older app builds simply don't have them)
+    try { if (N[fn]) return b !== undefined ? N[fn](a, b) : a !== undefined ? N[fn](a) : N[fn](); } catch (e) { }
+  }
 
   /* ===================== HTTP ===================== */
   var httpWait = {}, httpSeq = 0;
@@ -80,12 +82,13 @@
     header();
   }
   function header() {
-    var v = S.view, app = (S.cfg && S.cfg.n) || 'Pick Verify';
+    var v = S.view, app = (S.cfg && S.cfg.n) || 'MRCGZB Pick/IN';
+    $('hLogo').classList.toggle('hide', v === 'vDoc');
     $('hBack').classList.toggle('hide', v !== 'vDoc');
     $('hRefresh').classList.toggle('hide', !(v === 'vHome' || v === 'vDoc'));
     $('hMenu').classList.toggle('hide', !(v === 'vHome' || v === 'vDoc'));
     var title = app, sub = '';
-    if (v === 'vHome' && S.user) sub = '👤 ' + S.user.name + ' · ' + (ROLE_LABEL[S.user.role] || S.user.role) + (S.wh ? ' · 🏭 ' + S.wh : '');
+    if (v === 'vHome' && S.user) sub = (S.wh ? '🏭 ' + S.wh + ' · ' : '') + (ROLE_LABEL[S.user.role] || S.user.role);
     if (v === 'vDoc' && S.cur) { title = S.cur.doc; sub = (S.cur.type === 'PICK' ? 'Picking' : 'Inward') + ' · ' + (S.user ? S.user.name : ''); }
     $('hTitle').innerHTML = esc(title) + '<small>' + esc(sub) + '</small>';
     renderSync();
@@ -143,6 +146,7 @@
       if (r.app) { S.cfg.n = r.app; pset('cfg', S.cfg); header(); }
       if (r.warehouse) { S.wh = r.warehouse; pset('wh', S.wh); }
       $('loginWh').textContent = S.wh ? '🏭 Warehouse: ' + S.wh : '';
+      if (S.cfg && S.cfg.n) $('loginApp').textContent = S.cfg.n;
       fillUsers();
     }).catch(function (e) { toast('⚠️ ' + e.message); }).then(function () { busy(false); });
   }
@@ -207,24 +211,54 @@
     feedback('warn');
     toast('🔔 ' + (fresh.length === 1 ? fresh[0].t : fresh.length + ' naye documents'));
   }
+  function ago(ms) {
+    if (!ms) return '';
+    var m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    return m < 1 ? 'abhi' : m < 60 ? m + ' min pehle' : m < 1440 ? Math.round(m / 60) + ' ghante pehle' : Math.round(m / 1440) + ' din pehle';
+  }
+  function isClosed(d) { return d.status === 'DONE' || d.status === 'CLOSED-SHORT'; }
+  function renderHello() {
+    if (!S.user || S.tab === 'REPORT') { $('hello').innerHTML = ''; return; }
+    var D = S.docs, all = seesAll(), first = String(S.user.name).split(' ')[0];
+    var open = D.filter(function (d) { return d.status === 'OPEN' || d.status === 'UNASSIGNED'; }).length;
+    var prog = D.filter(function (d) { return d.status === 'IN PROGRESS'; }).length;
+    var done = D.filter(isClosed).length, dup = D.filter(function (d) { return d.dup > 0 && !isClosed(d); }).length;
+    var hr = new Date().getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Namaste' : 'Good evening';
+    var st = all
+      ? [[open, 'Shuru nahi'], [prog, 'Chal rahe'], [dup, '⛔ Duplicate', dup ? 'alert' : '']]
+      : [[open, 'Naya kaam'], [prog, 'Chal raha'], [done, 'Complete ✓']];
+    $('hello').innerHTML = '<div class="hello"><div class="hi">' + greet + ', ' + esc(first) + ' 👋</div><div class="sub2">' +
+      (all ? 'Aaj warehouse ka haal' : (open + prog ? 'Aaj aapke ' + (open + prog) + ' document baaki hain' : 'Sab kaam complete — shabaash!')) + '</div>' +
+      '<div class="stats">' + st.map(function (x) { return '<div class="' + (x[2] || '') + '"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>'; }).join('') + '</div></div>';
+  }
   function renderDocs() {
     var t = S.tab;
     $('tabPick').classList.toggle('on', t === 'PICK'); $('tabInw').classList.toggle('on', t === 'INWARD');
     $('tabRep').classList.toggle('hide', !seesAll()); $('tabRep').classList.toggle('on', t === 'REPORT');
+    $('tabRep').parentNode.classList.toggle('three', seesAll());
     $('docList').classList.toggle('hide', t === 'REPORT'); $('repView').classList.toggle('hide', t !== 'REPORT');
+    var cnt = function (ty) { var n = S.docs.filter(function (d) { return d.type === ty && !isClosed(d); }).length; return n ? String(n) : ''; };
+    $('cntPick').textContent = cnt('PICK'); $('cntInw').textContent = cnt('INWARD');
+    $('cntPick').classList.toggle('hide', !cnt('PICK')); $('cntInw').classList.toggle('hide', !cnt('INWARD'));
+    renderHello();
     if (t === 'REPORT') return renderReport();
     var order = { 'IN PROGRESS': 0, 'OPEN': 1, 'UNASSIGNED': 2, 'CLOSED-SHORT': 3, 'DONE': 4 };
     var list = S.docs.filter(function (d) { return d.type === t; }).sort(function (a, b) { return (order[a.status] == null ? 1 : order[a.status]) - (order[b.status] == null ? 1 : order[b.status]); });
     var admin = seesAll();
     $('docList').innerHTML = list.map(function (d) {
       var cls = d.status === 'DONE' ? 'g' : d.status === 'IN PROGRESS' ? 'a' : d.status === 'CLOSED-SHORT' ? 'r' : d.status === 'UNASSIGNED' ? '' : 'b';
+      var st = d.status === 'DONE' ? 'st-done' : d.status === 'IN PROGRESS' ? 'st-prog' : d.status === 'CLOSED-SHORT' ? 'st-short' : d.status === 'UNASSIGNED' ? 'st-un' : 'st-open';
       var pct = d.qty ? Math.min(100, Math.round(d.done * 100 / d.qty)) : 0;
-      return '<div class="card" data-doc="' + esc(d.doc) + '"><div class="dh"><b>' + esc(d.doc) + '</b><span class="chip ' + cls + '">' + esc(d.status) + '</span></div>' +
-        '<div class="prog"><div class="bar" style="width:' + pct + '%"></div></div>' +
-        '<div class="muted">' + d.doneLines + '/' + d.lines + ' lines · ' + d.done + '/' + d.qty + ' qty' + (admin && d.assignedTo ? ' · 👤 ' + esc(d.assignedTo) : '') +
+      var icon = d.status === 'DONE' ? '✅' : d.type === 'PICK' ? '🚚' : '📥';
+      return '<div class="card doc ' + st + '" data-doc="' + esc(d.doc) + '"><div class="dic">' + icon + '</div><div class="dmain">' +
+        '<div class="dh"><b>' + esc(d.doc) + '</b><span class="chip ' + cls + '">' + esc(d.status) + '</span></div>' +
+        '<div class="dmeta">' + d.lines + ' lines · ' + d.qty + ' qty' + (d.assignedAt ? ' · ⏱ ' + ago(d.assignedAt) : '') + (admin && d.assignedTo ? ' · 👤 ' + esc(d.assignedTo) : '') +
         (d.missing ? ' · ⚠️ sheet me data nahi' : '') + '</div>' +
-        (d.dup ? '<div class="dupb">⛔ ' + d.dup + ' line DUPLICATE — GM / Owner approval ke bina pick nahi hoga</div>' : '') + '</div>';
-    }).join('') || '<div class="empty">' + (t === 'PICK' ? 'Koi pick slip assign nahi hai' : 'Koi inward assign nahi hai') + '<br><span class="muted">Operator Assign tab me naam daale, phir ⟳</span></div>';
+        '<div class="prog"><div class="bar" style="width:' + pct + '%"></div></div>' +
+        '<div class="dfoot"><span>' + d.doneLines + '/' + d.lines + ' lines · ' + d.done + '/' + d.qty + ' qty</span><span class="pct">' + pct + '%</span></div>' +
+        (d.dup ? '<div class="dupb">⛔ ' + d.dup + ' line DUPLICATE — GM / Owner approval ke bina pick nahi hoga</div>' : '') + '</div></div>';
+    }).join('') || '<div class="empty"><div style="font-size:44px">' + (t === 'PICK' ? '🚚' : '📥') + '</div>' + (t === 'PICK' ? 'Koi pick slip assign nahi hai' : 'Koi inward assign nahi hai') +
+      '<br><span class="muted">Naya kaam aate hi 🔔 notification aayega</span></div>';
   }
 
   /* ===================== document lines ===================== */
@@ -264,7 +298,9 @@
   function renderDoc() {
     var c = S.cur, L = c.lines, q = 0, d = 0, dl = 0;
     L.forEach(function (l) { q += l.qty; d += Math.min(l.done, l.qty); if (isDone(l)) dl++; });
-    $('docBar').style.width = (q ? Math.min(100, Math.round(d * 100 / q)) : 0) + '%';
+    var pc = q ? Math.min(100, Math.round(d * 100 / q)) : 0;
+    $('docBar').style.width = pc + '%'; $('docPct').textContent = pc + '%';
+    $('docType').textContent = (c.type === 'PICK' ? '🚚 Picking' : '📥 Inward') + (c.lines[0] && c.lines[0].party ? ' · ' + c.lines[0].party : '');
     $('docProg').textContent = dl + '/' + L.length + ' lines · ' + d + '/' + q + ' qty';
     var noId = L.filter(function (l) { return !isDone(l) && !PVEngine.lineHasIdentity(l); });
     $('docWarn').innerHTML = (c.readOnly ? '<div class="warnbox">👁 Sirf dekhne ke liye — ye document aapko assign nahi hai.</div>' : '') +
@@ -291,7 +327,7 @@
       var act = dn || blocked || c.readOnly ? '' : '<div class="lact"><button class="cam" data-scan="' + l.row + '" aria-label="Is item ko scan karo">📷</button>' +
         '<button class="shortb" data-short="' + l.row + '">Kam mila</button></div>';
       return '<div class="card ln' + (dn ? ' done' : '') + (blocked ? ' dupcard' : '') + '"><div class="grow"><div><span class="chip ' + cls + '">' + st + '</span> <b>' + l.done + ' / ' + l.qty + '</b>' +
-        (cs(l) > 1 ? ' <span class="muted">(' + esc(boxText(l.qty, l)) + ')</span>' : '') + '</div>' +
+        (cs(l) > 1 && l.qty >= cs(l) ? ' <span class="muted">(' + esc(boxText(l.qty, l)) + ')</span>' : '') + '</div>' +
         '<div class="nm">' + esc(nm(l)) + '</div><div class="kv">' + kv + '</div>' +
         '<div class="muted" style="font-size:12px;margin-top:4px">' + esc([l.sku, l.barcode, l.order, l.invoice, l.party].filter(Boolean).join(' · ')) + '</div>' + extra + dp + '</div>' + act + '</div>';
     }).join('') || '<div class="empty">Koi line nahi</div>';
