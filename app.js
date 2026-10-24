@@ -322,6 +322,7 @@
           : '<div class="dupw">⚠️ ' + esc(l.dup.msg) + '</div>';
       }
       if (cs(l) > 1) kv += '<span>Box <b>' + cs(l) + ' pcs</b></span>';
+      if (l.skip) kv += '<span class="muted">Check nahi: ' + esc(l.skip) + ' (box pe nahi)</span>';
       var extra = (l.wrong ? '<div class="wrongc">❌ ' + l.wrong + ' galat scan</div>' : '') +
         (l.status === 'SHORT' && l.shortReason ? '<div class="shortr">Short: ' + esc(l.shortReason) + '</div>' : '');
       var act = dn || blocked || c.readOnly ? '' : '<div class="lact"><button class="cam" data-scan="' + l.row + '" aria-label="Is item ko scan karo">📷</button>' +
@@ -383,7 +384,7 @@
     renderLive(d);
   };
   function evidence() {
-    var sc = S.scan, out = [], win = (S.cur.opts && S.cur.opts.WIN) || 5;
+    var sc = S.scan, out = [], win = PVEngine.opts(S.cur.opts).WIN_MULTI || 12;     // server re-checks the same frames (incl. other faces of the box)
     for (var i = sc.evs.length - 1; i >= 0 && out.length < win; i--) if (!sc.evs[i].empty) out.unshift({ t: sc.frames[i].t.slice(0, 4000), c: sc.frames[i].c.slice(0, 6) });
     return out;
   }
@@ -410,6 +411,7 @@
     else if (d.kind === 'CONFIRMING') msg = 'Match ho raha hai… phone hilao mat';
     else if (d.kind === 'NOID') msg = 'Product ka naam / batch wala hissa bhi dikhao';
     else if (d.kind === 'AMBIGUOUS') msg = 'Do items same lag rahe hain — product naam wala hissa dikhao';
+    else if (d.kind === 'TURN') msg = '🔄 Dabba ghumao — ' + (d.missing || []).join(', ') + ' wali side dikhao';
     else msg = 'Label padh raha hai…';
     $('sMsg').textContent = msg;
     var need = d.need || 3, on = d.progress || 0, dots = '';
@@ -438,7 +440,7 @@
     sc.lastRow = d.row;
     feedback('ok');
     var docDone = S.cur.lines.every(isDone);
-    var msg = nm(l) + '\n+' + q + (S.unit === 'BOX' && cs(l) > 1 ? ' pcs (' + S.qty + ' box)' : '') + '   →   ' + l.done + ' / ' + l.qty + (d.captured ? '\nBatch record: ' + d.captured : '') + (docDone ? '\n\n🎉 Document complete!' : '');
+    var msg = (d.faces ? '🔄 2 side se check ✓\n' : '') + nm(l) + '\n+' + q + (S.unit === 'BOX' && cs(l) > 1 ? ' pcs (' + S.qty + ' box)' : '') + '   →   ' + l.done + ' / ' + l.qty + (d.captured ? '\nBatch record: ' + d.captured : '') + (docDone ? '\n\n🎉 Document complete!' : '');
     if (S.unit === 'BOX' && cs(l) <= 1) msg += '\n(Is item ka Case Size sheet me nahi — ' + q + ' pcs gina)';
     showResult('g', '✅', 'SAHI — ' + verb(), msg, d.checks, docDone ? [['finish', '✔ List pe jao']] : [['next', '📷 AGLA BOX'], ['stop', 'Scan band karo']]);
     if (S.set.auto && !docDone) {

@@ -23,6 +23,7 @@ var PVEngine = (function () {
     REQUIRE_IDENTITY: true, // MRP + weight alone are never enough
     CAPTURE_BATCH: false,   // inward: sheet batch blank -> read & record batch from label
     WIN: 5,                 // frames looked at
+    WIN_MULTI: 12,          // frames looked at when MRP / batch / weight are on different faces of the box
     NEED_FIT: 3,            // frames that must agree for GREEN
     NEED_BAD: 3,            // frames that must show mismatch for RED
     NEED_NOTINDOC: 2        // frames with a barcode that is not in this document
@@ -58,7 +59,7 @@ var PVEngine = (function () {
     var T = String(text || '').toUpperCase().replace(/\r/g, '');
     return {
       codes: list, normCodes: list.map(normCode).filter(Boolean), gs1: gs1, text: T,
-      mrps: extractMRPs(T), weights: extractWeights(T, true), allWeights: extractWeights(T, false),
+      mrps: extractMRPs(T), weights: extractWeights(T, true), allWeights: extractWeights(T, false), packs: extractPacks(T),
       batches: extractBatches(T), spaced: spaced(T), flat: flatNorm(T)
     };
   }
@@ -234,15 +235,31 @@ var PVEngine = (function () {
     }
     return out;
   }
+  /* carton: "1 KG X 25", "25 X 1 KG", "(500 G X 40)" -> weight of one unit */
+  function extractPacks(T) {
+    var t = fixNum(T), out = [], m;
+    var a = new RegExp('(\\d+(?:\\.\\d+)?)\\s*' + UNIT_SRC + '\\s*[X×*]\\s*\\d+(?![\\d.])', 'g');
+    var b = new RegExp('(?:^|[^\\d.])\\d+\\s*[X×*]\\s*(\\d+(?:\\.\\d+)?)\\s*' + UNIT_SRC + '(?![A-Z])', 'g');
+    [a, b].forEach(function (re) {
+      while ((m = re.exec(t))) { var u = unit(m[2]); if (u) out.push({ v: parseFloat(m[1]) * u.f, d: u.d, s: m[1] + ' ' + m[2] }); }
+    });
+    return out;
+  }
   function checkWeight(l, ctx, o) {
     var raw = trim(l.weight);
     if (!raw) return na();
     var e = parseQty(raw, o.DEFAULT_UNIT);
     if (!e || !e.v) return na();
     var eq = function (q) { return q.d === e.d && Math.abs(q.v - e.v) <= Math.max(1e-6, e.v * o.WEIGHT_TOL_PCT / 100); };
-    if (ctx.gs1.weight) return eq(ctx.gs1.weight) ? res('MATCH', raw, ctx.gs1.weight.s) : res('MISMATCH', raw, ctx.gs1.weight.s);
+    var cs = Math.floor(Number(l.caseSize) || 0);
+    var caseTotal = function (q) { return cs > 1 && q.d === e.d && Math.abs(q.v - e.v * cs) <= Math.max(1e-6, e.v * cs * o.WEIGHT_TOL_PCT / 100); };
+    if (ctx.gs1.weight) return eq(ctx.gs1.weight) || caseTotal(ctx.gs1.weight) ? res('MATCH', raw, ctx.gs1.weight.s) : res('MISMATCH', raw, ctx.gs1.weight.s);
+    if (ctx.packs.length) {                                    // carton print: per-unit weight decides
+      var ph = ctx.packs.filter(eq)[0];
+      return ph ? res('MATCH', raw, ph.s + ' (carton)') : res('MISMATCH', raw, ctx.packs[0].s);
+    }
     if (ctx.weights.length) {
-      var hit = ctx.weights.filter(eq)[0];
+      var hit = ctx.weights.filter(eq)[0] || ctx.weights.filter(caseTotal)[0];
       return hit ? res('MATCH', raw, hit.s) : res('MISMATCH', raw, ctx.weights[0].s);
     }
     var any = ctx.allWeights.filter(eq)[0];
@@ -306,15 +323,26 @@ var PVEngine = (function () {
 
   /* ---------------- per line ---------------- */
   var REQ = ['barcode', 'keyword', 'mrp', 'weight', 'batch'];
+  /* ItemMaster "Box pe nahi": fields that are simply not printed on this box (e.g. MRP on a shipper carton) */
+  function skipSet(v) {
+    var o = {};
+    String(v == null ? '' : v).toUpperCase().split(/[^A-Z]+/).forEach(function (w) {
+      if (w === 'MRP' || w === 'PRICE') o.mrp = 1;
+      else if (/^(WEIGHT|WT|WGT|NETWT|QTY)$/.test(w)) o.weight = 1;
+      else if (/^(BATCH|LOT)$/.test(w)) o.batch = 1;
+    });
+    return o;
+  }
   function evaluate(l, ctx, o) {
     o = opts(o);
+    var sk = skipSet(l.skip);
     return {
       barcode: checkBarcode(l, ctx),
       keyword: checkKeyword(l, ctx),
       name: checkName(l, ctx),
-      mrp: checkMRP(l, ctx, o),
-      weight: checkWeight(l, ctx, o),
-      batch: checkBatch(l, ctx, o)
+      mrp: sk.mrp ? res('NA', '', '', 'box pe nahi') : checkMRP(l, ctx, o),
+      weight: sk.weight ? res('NA', '', '', 'box pe nahi') : checkWeight(l, ctx, o),
+      batch: sk.batch ? res('NA', '', '', 'box pe nahi') : checkBatch(l, ctx, o)
     };
   }
   function hasIdentity(c) { return c.barcode.s === 'MATCH' || c.batch.s === 'MATCH' || c.keyword.s === 'MATCH' || c.name.s === 'MATCH'; }
@@ -413,6 +441,8 @@ var PVEngine = (function () {
       var fe = fitEvs[fitEvs.length - 1];
       return { state: 'GREEN', row: row, full: remaining(line) <= 0, checks: fe.chk[row], captured: cap, read: fe.read, progress: cnt[row], need: o.NEED_FIT };
     }
+    var mg = mergeFaces(evs, lines, target, o);
+    if (mg) return mg;
     var anyFit = recent.some(function (e) { return e.chosen; });
     var nid = recent.filter(function (e) { return e.notInDoc; }).length;
     if (!anyFit && nid >= o.NEED_NOTINDOC) return { state: 'RED', kind: 'NOTINDOC', read: last.read };
@@ -422,12 +452,65 @@ var PVEngine = (function () {
       if (b.other) return { state: 'RED', kind: 'OTHER', row: b.best, other: b.other, checks: b.chk[b.best], read: b.read };
       return { state: 'RED', kind: 'MISMATCH', row: b.best, checks: b.chk[b.best], read: b.read };
     }
-    var kind = 'READING', bc = last.best ? last.chk[last.best] : null;
+    var kind = 'READING', bc = last.best ? last.chk[last.best] : null, missing = [];
     if (recent.filter(function (e) { return e.ambiguous; }).length >= 2) kind = 'AMBIGUOUS';
     else if (bc && reqOk(bc) && !hasIdentity(bc)) kind = 'NOID';
     else if (last.chosen && cnt[last.chosen]) kind = 'CONFIRMING';
+    else if (bc && hasIdentity(bc) && !hasMismatch(bc)) {         // right product, some detail is on another face
+      var LB = { mrp: 'MRP', weight: 'Weight', batch: 'Batch', keyword: 'Keyword', barcode: 'Barcode' };
+      missing = REQ.filter(function (k) { var st = bc[k].s; return st !== 'MATCH' && st !== 'NA' && st !== 'CAPTURE'; }).map(function (k) { return LB[k]; });
+      if (missing.length) kind = 'TURN';
+    }
     return { state: 'AMBER', kind: kind, row: last.chosen || last.best, checks: last.chosen ? last.chk[last.chosen] : bc,
-      read: last.read, progress: last.chosen ? (cnt[last.chosen] || 0) : 0, need: o.NEED_FIT };
+      read: last.read, progress: last.chosen ? (cnt[last.chosen] || 0) : 0, need: o.NEED_FIT, missing: missing };
+  }
+
+  /* Box details on different faces (front: name + weight, side: MRP + batch).
+   * Faces are joined only when EVERY joined frame itself proves this product (batch / barcode / keyword / name),
+   * the box in hand right now proves it too, no frame shows a mismatch, and no other product appears in between. */
+  function strongId(c) { return c.barcode.s === 'MATCH' || c.keyword.s === 'MATCH' || c.name.s === 'MATCH'; }
+  /* this frame proves THIS product only (a batch shared by two products is not proof) */
+  function cleanFor(e, row, pk, lines) {
+    var c = e.chk[row];
+    if (!c || !hasIdentity(c) || hasMismatch(c) || e.other || e.ambiguous) return false;
+    var others = lines.filter(function (x) { return prodKey(x) !== pk && e.chk[x.row] && hasIdentity(e.chk[x.row]); });
+    if (!others.length) return true;
+    return strongId(c) && !others.some(function (x) { return strongId(e.chk[x.row]); });
+  }
+  function mergeFaces(evs, lines, target, o) {
+    var win = (evs || []).filter(function (e) { return !e.empty; }).slice(-o.WIN_MULTI);
+    if (win.length < o.NEED_FIT || win.some(function (e) { return e.ambiguous || e.other; })) return null;
+    var last = win[win.length - 1];
+    var pool = target ? lines.filter(function (l) { return l.row === target; }) : lines;
+    for (var i = 0; i < pool.length; i++) {
+      var l = pool[i], row = l.row, pk = prodKey(l);
+      if (!cleanFor(last, row, pk, lines)) continue;                              // box in hand right now = this product
+      var lbs = last.chk[row].batch.s;
+      if (lbs !== 'NA' && lbs !== 'MATCH' && lbs !== 'CAPTURE') continue;         // ...and its batch is on screen right now
+      if (win.some(function (e) { return e.chk[row] && hasMismatch(e.chk[row]); })) continue;
+      var foreign = win.some(function (e) {
+        if (cleanFor(e, row, pk, lines)) return false;
+        return lines.some(function (x) { return prodKey(x) !== pk && e.chk[x.row] && hasIdentity(e.chk[x.row]); }) || !!e.notInDoc;
+      });
+      if (foreign) continue;
+      var idf = win.filter(function (e) { return cleanFor(e, row, pk, lines); });
+      if (idf.length < o.NEED_FIT || idf.length < win.length - 1) continue;     // at most one unreadable frame in between
+      var merged = {}, ok = true, cap = {}, capRaw = {};
+      REQ.concat(['name']).forEach(function (k) {
+        var m = idf.filter(function (e) { var st = e.chk[row][k].s; return st === 'MATCH' || st === 'CAPTURE'; });
+        var allNA = idf.every(function (e) { return e.chk[row][k].s === 'NA'; });
+        merged[k] = m.length ? m[m.length - 1].chk[row][k] : idf[idf.length - 1].chk[row][k];
+        if (k !== 'name' && !allNA && m.length < 2) ok = false;
+        m.forEach(function (e) { if (e.cap[row]) { cap[e.cap[row]] = (cap[e.cap[row]] || 0) + 1; capRaw[e.cap[row]] = e.capRaw[row]; } });
+      });
+      if (!ok) continue;
+      var capKeys = Object.keys(cap);
+      if (capKeys.length > 1 || (capKeys.length && cap[capKeys[0]] < 2)) continue;
+      var lineL = lines.filter(function (x) { return x.row === row; })[0];
+      return { state: 'GREEN', row: row, full: remaining(lineL) <= 0, checks: merged, captured: capKeys.length ? capRaw[capKeys[0]] : '',
+        read: last.read, progress: idf.length, need: o.NEED_FIT, faces: true };
+    }
+    return null;
   }
 
   /* convenience: raw frames -> decision (used by server re-check and manual entry) */
