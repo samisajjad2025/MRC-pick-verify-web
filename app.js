@@ -388,7 +388,7 @@
     for (var i = sc.evs.length - 1; i >= 0 && out.length < win; i--) if (!sc.evs[i].empty) out.unshift({ t: sc.frames[i].t.slice(0, 4000), c: sc.frames[i].c.slice(0, 6) });
     return out;
   }
-  var FL = [['barcode', 'Barcode'], ['keyword', 'Product'], ['name', 'Product'], ['mrp', 'MRP'], ['weight', 'Weight'], ['batch', 'Batch']];
+  var FL = [['barcode', 'Barcode'], ['code', 'Code'], ['keyword', 'Product'], ['name', 'Product'], ['mrp', 'MRP'], ['weight', 'Weight'], ['batch', 'Batch']];
   var IC = { MATCH: '✅', MISMATCH: '❌', UNCLEAR: '…', CAPTURE: '📝', NA: '' };
   function fieldRows(chk, forResult) {
     if (!chk) return '';

@@ -314,6 +314,13 @@ var PVEngine = (function () {
     return miss.length ? res('UNCLEAR', kw, toks.filter(function (t) { return miss.indexOf(t) === -1; }).join(' '), 'Keyword nahi dikha: ' + miss.join(' '))
       : res('MATCH', kw, kw);
   }
+  /* SAP Material / product code printed as TEXT on the box (not only in a barcode). Needs 5+ chars with 4+ digits,
+   * found as a separate word, so it never matches inside a longer number (EAN, FSSAI, batch). Proof only, never required. */
+  function checkCode(l, ctx) {
+    var e = flatNorm(l.sku);
+    if (e.length < 5 || (e.match(/\d/g) || []).length < 4) return na();
+    return new RegExp(' ' + e.split('').join(' ?') + ' ').test(ctx.spaced) ? res('MATCH', trim(l.sku), trim(l.sku)) : na();
+  }
   function checkName(l, ctx) {
     var toks = nameTokens(l.name);
     if (!toks.length) return na();
@@ -340,12 +347,13 @@ var PVEngine = (function () {
       barcode: checkBarcode(l, ctx),
       keyword: checkKeyword(l, ctx),
       name: checkName(l, ctx),
+      code: checkCode(l, ctx),
       mrp: sk.mrp ? res('NA', '', '', 'box pe nahi') : checkMRP(l, ctx, o),
       weight: sk.weight ? res('NA', '', '', 'box pe nahi') : checkWeight(l, ctx, o),
       batch: sk.batch ? res('NA', '', '', 'box pe nahi') : checkBatch(l, ctx, o)
     };
   }
-  function hasIdentity(c) { return c.barcode.s === 'MATCH' || c.batch.s === 'MATCH' || c.keyword.s === 'MATCH' || c.name.s === 'MATCH'; }
+  function hasIdentity(c) { return c.barcode.s === 'MATCH' || c.batch.s === 'MATCH' || c.keyword.s === 'MATCH' || c.name.s === 'MATCH' || (c.code && c.code.s === 'MATCH'); }
   function hasMismatch(c) { return REQ.some(function (k) { return c[k].s === 'MISMATCH'; }); }
   function reqOk(c) { return REQ.every(function (k) { var s = c[k].s; return s === 'MATCH' || s === 'NA' || s === 'CAPTURE'; }); }
   function isFit(c, o) {
@@ -356,15 +364,16 @@ var PVEngine = (function () {
   }
   /* can this sheet line ever be proven? (has batch / barcode / keyword / name words) */
   function lineHasIdentity(l) {
-    return (trim(l.batch) && !isNABatch(l.batch)) || splitCodes(l.barcode).length || trim(l.sku) && /\d{8,}/.test(l.sku) ||
+    return (trim(l.batch) && !isNABatch(l.batch)) || splitCodes(l.barcode).length || (flatNorm(l.sku).match(/\d/g) || []).length >= 4 ||
       trim(l.keyword) || nameTokens(l.name).length;
   }
   function prodKey(l) { return normCode(l.sku) || normCode(l.barcode) || flatNorm(l.name) || ('ROW' + l.row); }
   function remaining(l) { return (Number(l.qty) || 0) - (Number(l.done) || 0); }
   function score(c) {
     var s = 0;
-    REQ.concat(['name']).forEach(function (k) {
-      if (c[k].s === 'MATCH') s += (k === 'barcode' || k === 'batch' || k === 'keyword') ? 6 : k === 'name' ? 4 : 3;
+    REQ.concat(['name', 'code']).forEach(function (k) {
+      if (c[k] && c[k].s === 'MATCH') s += (k === 'barcode' || k === 'batch' || k === 'keyword' || k === 'code') ? 6 : k === 'name' ? 4 : 3;
+      else if (!c[k]) return;
       else if (c[k].s === 'MISMATCH') s -= 2;
     });
     return s;
@@ -388,7 +397,7 @@ var PVEngine = (function () {
     var fitLines = ev.fit.map(function (r) { return byRow[r]; });
     var keys = uniq(fitLines.map(prodKey));
     if (keys.length > 1) {                       // two different products fit -> need name/keyword/barcode to decide
-      var strong = fitLines.filter(function (l) { var c = ev.chk[l.row]; return c.keyword.s === 'MATCH' || c.name.s === 'MATCH' || c.barcode.s === 'MATCH'; });
+      var strong = fitLines.filter(function (l) { return strongId(ev.chk[l.row]); });
       if (uniq(strong.map(prodKey)).length === 1) fitLines = strong;
       else { ev.ambiguous = true; fitLines = []; }
     }
@@ -468,7 +477,7 @@ var PVEngine = (function () {
   /* Box details on different faces (front: name + weight, side: MRP + batch).
    * Faces are joined only when EVERY joined frame itself proves this product (batch / barcode / keyword / name),
    * the box in hand right now proves it too, no frame shows a mismatch, and no other product appears in between. */
-  function strongId(c) { return c.barcode.s === 'MATCH' || c.keyword.s === 'MATCH' || c.name.s === 'MATCH'; }
+  function strongId(c) { return c.barcode.s === 'MATCH' || c.keyword.s === 'MATCH' || c.name.s === 'MATCH' || (c.code && c.code.s === 'MATCH'); }
   /* this frame proves THIS product only (a batch shared by two products is not proof) */
   function cleanFor(e, row, pk, lines) {
     var c = e.chk[row];
@@ -496,11 +505,11 @@ var PVEngine = (function () {
       var idf = win.filter(function (e) { return cleanFor(e, row, pk, lines); });
       if (idf.length < o.NEED_FIT || idf.length < win.length - 1) continue;     // at most one unreadable frame in between
       var merged = {}, ok = true, cap = {}, capRaw = {};
-      REQ.concat(['name']).forEach(function (k) {
+      REQ.concat(['name', 'code']).forEach(function (k) {
         var m = idf.filter(function (e) { var st = e.chk[row][k].s; return st === 'MATCH' || st === 'CAPTURE'; });
         var allNA = idf.every(function (e) { return e.chk[row][k].s === 'NA'; });
         merged[k] = m.length ? m[m.length - 1].chk[row][k] : idf[idf.length - 1].chk[row][k];
-        if (k !== 'name' && !allNA && m.length < 2) ok = false;
+        if (k !== 'name' && k !== 'code' && !allNA && m.length < 2) ok = false;
         m.forEach(function (e) { if (e.cap[row]) { cap[e.cap[row]] = (cap[e.cap[row]] || 0) + 1; capRaw[e.cap[row]] = e.capRaw[row]; } });
       });
       if (!ok) continue;

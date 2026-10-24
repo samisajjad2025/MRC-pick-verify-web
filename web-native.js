@@ -182,7 +182,7 @@
     },
     getPref: function (k) { try { return localStorage.getItem('pv_' + k) || ''; } catch (e) { return ''; } },
     setPref: function (k, v) { try { localStorage.setItem('pv_' + k, v); } catch (e) { } },
-    appVersion: function () { return 'web 1.2.1'; },
+    appVersion: function () { return 'web 1.2.2'; },
     /* notifications: only while the app is open (iPhone needs it on the Home Screen, iOS 16.4+) */
     notifyState: function () { return 'Notification' in window ? Notification.permission : 'unsupported'; },
     askNotify: function () {
