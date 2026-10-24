@@ -182,7 +182,22 @@
     },
     getPref: function (k) { try { return localStorage.getItem('pv_' + k) || ''; } catch (e) { return ''; } },
     setPref: function (k, v) { try { localStorage.setItem('pv_' + k, v); } catch (e) { } },
-    appVersion: function () { return 'web 1.0'; }
+    appVersion: function () { return 'web 1.1'; },
+    /* notifications: only while the app is open (iPhone needs it on the Home Screen, iOS 16.4+) */
+    notifyState: function () { return 'Notification' in window ? Notification.permission : 'unsupported'; },
+    askNotify: function () {
+      try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { }
+    },
+    notify: function (title, body) {
+      try {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        var opt = { body: body, icon: 'icon-192.png', badge: 'icon-192.png', tag: 'pv-' + title };
+        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+          navigator.serviceWorker.ready.then(function (r) { r.showNotification(title, opt); }).catch(function () { new Notification(title, opt); });
+        } else new Notification(title, opt);
+      } catch (e) { }
+    },
+    background: function () { }
   };
 
   if ('serviceWorker' in navigator && location.protocol === 'https:') {

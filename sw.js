@@ -1,5 +1,5 @@
 /* Pick Verify offline cache: app files network-first, AI reader files cache-first */
-var CACHE = 'pickverify-web-v2';
+var CACHE = 'pickverify-web-v3';
 var CORE = ['./', 'index.html', 'app.js', 'engine.js', 'web-native.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
   'lib/tesseract.min.js', 'lib/worker.min.js', 'lib/zxing.min.js'];
 self.addEventListener('install', function (e) {
@@ -22,4 +22,12 @@ self.addEventListener('fetch', function (e) {
   e.respondWith(fetch(e.request).then(function (r) {
     var cp = r.clone(); caches.open(CACHE).then(function (c) { c.put(e.request, cp); }); return r;
   }).catch(function () { return caches.match(e.request).then(function (hit) { return hit || caches.match('index.html'); }); }));
+});
+
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window' }).then(function (cs) {
+    if (cs.length) return cs[0].focus();
+    return self.clients.openWindow('./');
+  }));
 });
