@@ -720,7 +720,50 @@
     $('stInfo').textContent = 'User: ' + (S.user ? S.user.name + ' (' + (ROLE_LABEL[S.user.role] || S.user.role) + ')' : '-') + (S.wh ? ' · 🏭 ' + S.wh : '') + ' · App ' + (N.appVersion ? N.appVersion() : '') + ' · Pending sync: ' + S.queue.length;
     var ns = nat('notifyState');
     $('stNotify').classList.toggle('hide', !ns || ns === 'granted' || ns === 'unsupported');
+    $('stPinReset').classList.toggle('hide', !isApprover());
     $('dSet').classList.remove('hide');
+  }
+
+  /* ===================== PIN: change own, GM / Owner reset someone's (PINs are hidden in the Sheet) ===================== */
+  function pinForm(title, who) {
+    return new Promise(function (resolve) {
+      var d = document.createElement('div');
+      d.className = 'sheet';
+      d.innerHTML = '<div class="pn"><h1>' + esc(title) + '</h1>' +
+        (who ? '<label>Kiska PIN</label><select id="pfWho">' + S.users.filter(function (n) { return n !== S.user.name; }).map(function (n) { return '<option>' + esc(n) + '</option>'; }).join('') + '</select>' : '') +
+        '<label>Naya PIN (4-6 number)</label><input id="pfNew" type="password" inputmode="numeric" autocomplete="off">' +
+        '<label>Naya PIN dobara</label><input id="pfNew2" type="password" inputmode="numeric" autocomplete="off">' +
+        '<p class="muted">Sheet me PIN 🔒 chhupa rehta hai — koi padh nahi sakta. Naya PIN sirf us bande ko batao.</p>' +
+        '<div class="row" style="margin-top:12px"><button class="btn" data-a="0">Cancel</button><button class="btn p grow" data-a="1">Save</button></div></div>';
+      d.onclick = function (e) {
+        var b = e.target.closest('[data-a]'); if (!b) return;
+        if (b.getAttribute('data-a') !== '1') { document.body.removeChild(d); return resolve(null); }
+        var n1 = d.querySelector('#pfNew').value.trim(), n2 = d.querySelector('#pfNew2').value.trim();
+        if (!/^\d{4,6}$/.test(n1)) return toast('PIN 4 se 6 number ka');
+        if (n1 !== n2) return toast('Dono PIN same nahi');
+        var out = { pin: n1, who: who ? d.querySelector('#pfWho').value : '' };
+        document.body.removeChild(d); resolve(out);
+      };
+      document.body.appendChild(d);
+    });
+  }
+  function changeMyPin() {
+    $('dSet').classList.add('hide');
+    pinForm('Mera PIN badlo').then(function (f) {
+      if (!f) return;
+      busy('PIN badal raha hai…');
+      api('changePin', { newPin: f.pin }).then(function () { S.user.pin = f.pin; pset('user', S.user); toast('✔ PIN badal gaya — agli baar naye PIN se login'); })
+        .catch(function (e) { toast('⚠️ ' + e.message); }).then(function () { busy(false); });
+    });
+  }
+  function resetSomeonePin() {
+    $('dSet').classList.add('hide');
+    pinForm('PIN reset (GM / Owner)', true).then(function (f) {
+      if (!f || !f.who) return;
+      busy('PIN reset ho raha hai…');
+      api('resetPin', { target: f.who, newPin: f.pin }).then(function (r) { toast('✔ ' + r.target + ' ka naya PIN set — usko batao'); })
+        .catch(function (e) { toast('⚠️ ' + e.message); }).then(function () { busy(false); });
+    });
   }
   function logout() {
     nat('background', false);
@@ -789,6 +832,8 @@
     };
     $('stReset').onclick = function () { $('dSet').classList.add('hide'); goSetup(); };
     $('stClose').onclick = function () { $('dSet').classList.add('hide'); };
+    $('stPin').onclick = changeMyPin;
+    $('stPinReset').onclick = resetSomeonePin;
   }
 
   function init() {
