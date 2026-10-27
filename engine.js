@@ -14,6 +14,7 @@
  *******************************************************************/
 var PVEngine = (function () {
   'use strict';
+  var VERSION = 10206, API = 1;        // 1.2.6 · the app and the Sheet load newer engines only with the same API
 
   var DEF = {
     MRP_TOL: 0.01,          // Rs difference allowed
@@ -609,7 +610,7 @@ var PVEngine = (function () {
   }
 
   return {
-    DEF: DEF, opts: opts, buildCtx: buildCtx, evaluate: evaluate, isFit: isFit, evalFrame: evalFrame, decide: decide,
+    VERSION: VERSION, API: API, DEF: DEF, opts: opts, buildCtx: buildCtx, evaluate: evaluate, isFit: isFit, evalFrame: evalFrame, decide: decide,
     judge: judge, reasons: reasons, lineHasIdentity: lineHasIdentity, remaining: remaining, parseGS1: parseGS1,
     codeMatch: codeMatch, extractBatches: extractBatches, toNum: toNum, normBatch: normBatch, isNABatch: isNABatch, isGTIN: isGTIN
   };

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>MRCGZB Pick/IN</title>
+<style>
+:root{--bg:#eef2f7;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#2563eb;--brand2:#6d28d9;--ok:#15803d;--bad:#dc2626;--warn:#d97706;--cam:45vh;
+--grad:linear-gradient(135deg,#2563eb,#6d28d9);--shadow:0 1px 2px rgba(15,23,42,.06),0 4px 14px rgba(15,23,42,.06)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit}
+.hide{display:none!important}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(120deg,#0b1220 0%,#14204a 60%,#26206b 100%);color:#fff;min-height:58px;box-shadow:0 2px 10px rgba(2,6,23,.25)}
+.hlogo{width:32px;height:32px;flex:none;display:block}.hlogo svg,.logo svg{width:100%;height:100%;display:block}
+header .t{flex:1;min-width:0;font-weight:800;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .t small{display:block;font-weight:500;font-size:12px;opacity:.7}
+.hbtn{background:rgba(255,255,255,.12);border:0;border-radius:10px;padding:8px 11px;font-size:16px;color:#fff}
+.sync{background:#f59e0b;color:#111;border:0;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:800}
+.wrap{padding:14px;max-width:640px;margin:0 auto}
+h1{font-size:22px;margin:4px 0 12px}
+h2{font-size:15px;margin:18px 4px 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+label{display:block;font-size:14px;color:var(--muted);margin:12px 0 6px}
+input,select{width:100%;font-size:18px;padding:13px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--brand)}
+.btn{border:0;border-radius:12px;padding:14px 16px;font-size:17px;font-weight:700;background:#e2e8f0;color:var(--ink)}
+.btn:active{transform:scale(.98)}
+.btn.p{background:var(--grad);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.28)}
+.btn.w{width:100%;margin-top:14px}
+.btn.big{padding:18px;font-size:19px}
+.btn.ghost{background:transparent;color:var(--muted);text-decoration:underline;font-weight:500;font-size:14px;padding:10px}
+.row{display:flex;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted);font-size:14px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin:10px 0;border:2px solid transparent;box-shadow:var(--shadow)}
+.card.done{border-color:#bbf7d0;opacity:.6}
+.tabs{display:flex;gap:8px;margin:2px 0 6px}
+.tab{flex:1;border:0;border-radius:14px;padding:12px 6px;font-weight:800;background:#fff;color:#334155;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;gap:6px}
+.tab.on{background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#fff}
+.tabs.three .ti{display:none}.tabs.three .tab{font-size:15px;padding:12px 4px;gap:5px}
+.tab .cnt{background:#e2e8f0;color:#0f172a;border-radius:999px;font-size:12px;padding:1px 8px;min-width:22px}.tab.on .cnt{background:rgba(255,255,255,.2);color:#fff}
+.chip{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#e2e8f0;color:#334155;letter-spacing:.3px;vertical-align:middle}
+.chip.g{background:#dcfce7;color:var(--ok)}.chip.a{background:#fef3c7;color:#92400e}.chip.r{background:#fee2e2;color:#991b1b}.chip.b{background:#dbeafe;color:#1e40af}
+.prog{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.bar{height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);width:0;transition:width .3s;border-radius:99px}
+.dh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:18px}
+.ln{display:flex;gap:12px;align-items:flex-start}
+.ln .nm{font-weight:800;margin-top:4px}
+.kv{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;color:#334155;margin-top:6px}
+.kv b{color:var(--ink)}
+.cam{flex:none;width:58px;height:58px;border-radius:14px;border:0;background:#eef2ff;font-size:26px}
+.dock{position:sticky;bottom:0;display:flex;gap:10px;padding:12px 0 14px;background:linear-gradient(rgba(241,243,246,0),var(--bg) 30%)}
+.qty{display:flex;align-items:center;background:#fff;border-radius:14px;border:2px solid var(--line)}
+.qty button{border:0;background:none;font-size:28px;width:46px;height:62px}
+.qty span{min-width:34px;text-align:center;font-weight:800;font-size:20px}
+.scanbtn{flex:1;border:0;background:var(--grad);color:#fff;font-size:21px;font-weight:800;height:66px;border-radius:16px;box-shadow:0 8px 20px rgba(37,99,235,.35)}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+.warnbox{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
+
+/* ---------- scan screen ---------- */
+#vScan{position:fixed;inset:0;background:#0b1220;color:#fff;z-index:10;display:flex;flex-direction:column}
+#camSpace{height:var(--cam);flex:none;position:relative;background:#000}
+#devCam{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:14px}
+#scanPanel{flex:1;overflow:auto;padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.sTop{display:flex;align-items:center;gap:8px}
+.sTop .tg{flex:1;min-width:0;font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbtn{background:#1e293b;border:0;border-radius:12px;padding:10px 13px;font-size:18px;color:#fff}
+.msg{font-size:18px;font-weight:700;min-height:26px}
+.dots{display:flex;gap:6px;margin-top:2px}.dots i{width:14px;height:14px;border-radius:50%;background:#334155;display:block}.dots i.on{background:#22c55e}
+table.f{width:100%;border-collapse:collapse;font-size:15px;background:#111a2e;border-radius:12px;overflow:hidden}
+table.f td{padding:9px 10px;border-bottom:1px solid #1e293b;vertical-align:top;word-break:break-word}
+table.f td:first-child{color:#94a3b8;width:22%}
+table.f td:last-child{width:34px;text-align:center}
+table.f tr.match td:nth-child(3){color:#86efac}
+table.f tr.mismatch td{background:#450a0a;color:#fecaca;font-weight:800}
+.qbadge{background:#1e293b;border-radius:10px;padding:6px 10px;font-weight:800}
+
+/* ---------- full screen result ---------- */
+.res{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#fff}
+.res.g{background:var(--ok)}.res.r{background:var(--bad)}.res.a{background:var(--warn)}
+.res .ico{font-size:96px;line-height:1}
+.res .tt{font-size:30px;font-weight:900;margin:12px 0 6px}
+.res .mm{font-size:19px;font-weight:600;white-space:pre-line;max-width:540px}
+.res table{width:100%;max-width:540px;margin:16px auto 6px;border-collapse:collapse;background:rgba(255,255,255,.15);border-radius:12px;overflow:hidden;font-size:15px;text-align:left}
+.res td,.res th{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.2)}
+.res th{font-size:12px;text-transform:uppercase;opacity:.85}
+.res tr.mismatch td{background:rgba(0,0,0,.3);font-weight:800}
+.res .acts{display:flex;flex-direction:column;gap:10px;width:100%;max-width:540px;margin-top:14px}
+.res .acts .btn{background:#fff;color:var(--ink);padding:17px;font-size:19px}
+.res .acts .btn.alt{background:rgba(255,255,255,.2);color:#fff}
+.res.r .ico{animation:shake .35s 3}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(15,23,42,.6);display:flex;align-items:flex-end;justify-content:center}
+.sheet .pn{background:#fff;width:100%;max-width:640px;border-radius:18px 18px 0 0;padding:18px 16px 22px;max-height:92vh;overflow:auto}
+#busy{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.8);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:17px;text-align:center;padding:20px}
+.spin{width:52px;height:52px;border:6px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite;margin-bottom:16px}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;left:14px;right:14px;bottom:22px;z-index:60;background:#0f172a;color:#fff;padding:13px 16px;border-radius:12px;font-size:15px;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.on{opacity:1}
+.dupb{margin-top:8px;background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;border-radius:10px;padding:8px 10px;font-size:13px;font-weight:700}
+.dupw{margin-top:8px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:10px;padding:8px 10px;font-size:13px}
+.dupa{margin-top:8px;background:#f1f5f9;color:#334155;border-radius:10px;padding:6px 10px;font-size:12px}
+.btn.dupok{margin-top:8px;background:#991b1b;color:#fff;padding:9px 12px;font-size:14px}
+.card.dupcard{border-color:#fca5a5}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.sw input{width:auto;transform:scale(1.4)}
+/* ---------- brand / hero ---------- */
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:26px 8px 18px}
+.logo{width:76px;height:76px;filter:drop-shadow(0 10px 18px rgba(79,70,229,.35))}
+.hname{font-size:26px;font-weight:900;letter-spacing:-.3px}
+.htag{font-size:15px;color:var(--muted)}
+.whpill{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px;box-shadow:var(--shadow)}
+.whpill:empty{display:none}
+.panel{background:#fff;border-radius:20px;padding:6px 16px 18px;box-shadow:var(--shadow)}
+.trust{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 14px;margin:16px 0 4px;font-size:13px;color:var(--muted)}
+.how{display:flex;flex-direction:column;gap:10px;margin:6px 0 16px}
+.how div{display:flex;gap:12px;align-items:center;background:#fff;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);font-size:15px}
+.how b{flex:none;width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center}
+/* ---------- home ---------- */
+.hello{background:linear-gradient(135deg,#1d4ed8 0%,#4f46e5 55%,#7c3aed 100%);color:#fff;border-radius:20px;padding:16px 16px 14px;margin:2px 0 14px;box-shadow:0 10px 24px rgba(79,70,229,.3);position:relative;overflow:hidden}
+.hello:after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hello .hi{font-size:21px;font-weight:900}.hello .sub2{font-size:13px;opacity:.85;margin-top:2px}
+.stats{display:flex;gap:8px;margin-top:12px;position:relative;z-index:1}
+.stats div{flex:1;background:rgba(255,255,255,.14);border-radius:14px;padding:9px 10px}
+.stats b{display:block;font-size:24px;line-height:1.1}.stats span{font-size:12px;opacity:.9}
+.stats .alert{background:rgba(239,68,68,.9)}
+.card.doc{display:flex;gap:12px;align-items:flex-start;border-left:6px solid #3b82f6;padding-left:12px}
+.card.doc.st-prog{border-left-color:#f59e0b}.card.doc.st-done{border-left-color:#22c55e}.card.doc.st-short{border-left-color:#ef4444}.card.doc.st-un{border-left-color:#94a3b8}
+.dic{flex:none;width:44px;height:44px;border-radius:14px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:22px}
+.st-done .dic{background:#dcfce7}.st-prog .dic{background:#fef3c7}.st-short .dic{background:#fee2e2}
+.dmain{flex:1;min-width:0}
+.dmeta{font-size:13px;color:var(--muted);margin-top:2px}
+.dfoot{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}.dfoot .pct{font-weight:800;color:var(--ink)}
+/* ---------- document summary ---------- */
+.sumcard{background:#fff;border-radius:18px;padding:12px 14px;box-shadow:var(--shadow);margin-bottom:4px}
+.sumtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.sumtop .big{font-size:30px;font-weight:900;letter-spacing:-.5px}.sumtop .ty{font-size:13px;font-weight:800;color:#4f46e5;background:#eef2ff;border-radius:999px;padding:3px 10px}
+.unit{box-shadow:var(--shadow);border:0}.qty{border:0;box-shadow:var(--shadow)}
+.lact{display:flex;flex-direction:column;gap:8px;align-items:center;flex:none}
+.shortb{border:0;border-radius:10px;background:#fff7ed;color:#9a3412;font-size:12px;font-weight:800;padding:7px 6px;width:58px}
+.wrongc{margin-top:6px;font-size:12px;font-weight:800;color:#b91c1c}
+.shortr{margin-top:6px;font-size:12px;color:#9a3412;background:#fff7ed;border-radius:8px;padding:5px 8px}
+.unit{border:2px solid var(--line);background:#fff;border-radius:14px;font-weight:800;font-size:14px;padding:0 10px;min-width:64px}
+.unit.on{background:#fef3c7;border-color:#f59e0b;color:#92400e}
+label.rad{display:flex;align-items:center;gap:10px;margin:0;padding:11px 4px;border-bottom:1px solid var(--line);color:var(--ink);font-size:16px}
+label.rad input{width:auto;transform:scale(1.3)}
+.rtabs{display:flex;gap:6px;margin:6px 0}
+.rtab{flex:1;border:0;border-radius:10px;padding:9px;font-weight:700;background:#e2e8f0}
+.rtab.on{background:var(--brand);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kpi{background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.kpi div{font-size:12px;color:var(--muted)}.kpi b{font-size:22px}
+.kpi.g b{color:var(--ok)}.kpi.r b{color:var(--bad)}.kpi.a b{color:var(--warn)}
+.tw{overflow-x:auto;background:#fff;border-radius:12px}
+table.rt{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+table.rt th{background:#0f172a;color:#fff;padding:7px 6px;text-align:left;font-size:12px}
+table.rt td{padding:7px 6px;border-bottom:1px solid var(--line)}
+table.rt td.bad{color:var(--bad);font-weight:800}
+.card.vio{border-color:#fecaca}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <button class="hbtn hide" id="hBack" aria-label="Back">←</button>
+  <span class="hlogo" id="hLogo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lgh" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><rect width="48" height="48" rx="13" fill="url(#lgh)"/><path d="M24 9.5l12.5 6.2v14.6L24 36.5l-12.5-6.2V15.7z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M11.5 15.7L24 22l12.5-6.3M24 22v14.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><circle cx="35.5" cy="34.5" r="8.2" fill="#22c55e" stroke="#fff" stroke-width="2.4"/><path d="M31.8 34.6l2.6 2.6 4.6-5.1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+  <div class="t" id="hTitle">MRCGZB Pick/IN<small id="hSub"></small></div>
+  <button class="sync hide" id="hSync"></button>
+  <button class="hbtn hide" id="hRefresh" aria-label="Refresh">⟳</button>
+  <button class="hbtn hide" id="hMenu" aria-label="Settings">⚙</button>
+</header>
+
+<!-- SETUP -->
+<section id="vSetup" class="wrap hide">
+  <div class="hero"><div class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lgs" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><rect width="48" height="48" rx="13" fill="url(#lgs)"/><path d="M24 9.5l12.5 6.2v14.6L24 36.5l-12.5-6.2V15.7z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M11.5 15.7L24 22l12.5-6.3M24 22v14.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><circle cx="35.5" cy="34.5" r="8.2" fill="#22c55e" stroke="#fff" stroke-width="2.4"/><path d="M31.8 34.6l2.6 2.6 4.6-5.1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="hname">MRCGZB Pick/IN</div>
+  <div class="htag">Camera se Picking + Inward check — galat maal count hi nahi hota</div></div>
+  <div class="how"><div><b>1</b><span>Laptop pe Sheet → menu <strong>📦 Pick Verify → App setup QR</strong></span></div>
+  <div><b>2</b>Neeche wala button dabao, QR camera ke saamne</div><div><b>3</b>Apna naam + PIN → kaam shuru</div></div>
+  <button class="btn p w big" id="btnSetupQR">📷 Setup QR scan karo</button>
+  <button class="btn ghost w" id="btnSetupManual">QR nahi hai? Manually daalo</button>
+  <div id="setupManual" class="hide">
+    <label for="inUrl">Web app URL (/exec)</label><input id="inUrl" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+    <label for="inKey">API key</label><input id="inKey" autocomplete="off">
+    <button class="btn p w" id="btnSetupSave">Save & connect</button>
+  </div>
+</section>
+
+<!-- LOGIN -->
+<section id="vLogin" class="wrap hide">
+  <div class="hero"><div class="logo"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="lgl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><rect width="48" height="48" rx="13" fill="url(#lgl)"/><path d="M24 9.5l12.5 6.2v14.6L24 36.5l-12.5-6.2V15.7z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M11.5 15.7L24 22l12.5-6.3M24 22v14.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><circle cx="35.5" cy="34.5" r="8.2" fill="#22c55e" stroke="#fff" stroke-width="2.4"/><path d="M31.8 34.6l2.6 2.6 4.6-5.1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="hname" id="loginApp">MRCGZB Pick/IN</div>
+  <div class="whpill" id="loginWh"></div></div>
+  <div class="panel">
+  <label for="inUser">Naam</label><select id="inUser"></select>
+  <label for="inPin">PIN</label><input id="inPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
+  <button class="btn p w big" id="btnLogin">Login ▶</button>
+  <div id="loginErr" class="hide" style="margin-top:12px;padding:10px 12px;border-radius:12px;background:#fef2f2;border:1px solid #fca5a5;color:#7f1d1d;font-size:14px;line-height:1.4"><div id="loginErrMsg"></div><button class="btn w" id="btnLoginRetry" style="margin-top:8px">⟳ Dobara try karo</button></div></div>
+  <div class="trust"><span>📷 Camera se check</span><span>🔒 PIN login</span><span>📵 Offline bhi chalta hai</span></div>
+  <button class="btn ghost w" id="btnReSetup">Server badlo (setup)</button>
+</section>
+
+<!-- HOME -->
+<section id="vHome" class="wrap hide">
+  <div id="hello"></div>
+  <div class="tabs"><button class="tab on" data-tab="PICK" id="tabPick"><span class="ti">🚚</span>PICKING<span class="cnt" id="cntPick"></span></button><button class="tab" data-tab="INWARD" id="tabInw"><span class="ti">📥</span>INWARD<span class="cnt" id="cntInw"></span></button><button class="tab hide" id="tabRep">📊 REPORT</button></div>
+  <div id="docList"></div>
+  <div id="repView" class="hide"></div>
+</section>
+
+<!-- DOC -->
+<section id="vDoc" class="wrap hide">
+  <div class="sumcard"><div class="sumtop"><span class="big" id="docPct">0%</span><span class="ty" id="docType"></span></div>
+  <div class="prog"><div class="bar" id="docBar"></div></div>
+  <div class="muted" id="docProg"></div></div>
+  <div id="docWarn"></div>
+  <div id="lineList"></div>
+  <div class="row" style="justify-content:space-between">
+    <button class="btn ghost" id="btnManual">Manual entry (GM)</button>
+    <button class="btn ghost" id="btnClose">Document close karo</button>
+  </div>
+  <div class="dock" id="dock">
+    <button class="unit" id="qUnit" aria-label="Piece ya Box">PCS</button>
+    <div class="qty"><button id="qMinus" aria-label="Kam">−</button><span id="qVal">1</span><button id="qPlus" aria-label="Zyada">+</button></div>
+    <button class="scanbtn" id="btnScan">📷 SCAN</button>
+  </div>
+</section>
+
+<!-- LIVE SCAN -->
+<section id="vScan" class="hide">
+  <div id="camSpace"><div id="devCam">camera</div></div>
+  <div id="scanPanel">
+    <div class="sTop">
+      <div class="tg" id="sTarget"></div>
+      <span class="qbadge" id="sQty"></span>
+      <button class="sbtn" id="btnTorch" aria-label="Torch">🔦</button>
+      <button class="sbtn" id="btnStop" aria-label="Band karo">✖</button>
+    </div>
+    <div class="msg" id="sMsg">Label camera ke saamne rakho</div>
+    <div class="dots" id="sDots"></div>
+    <table class="f" id="sTable"></table>
+    <div class="muted" id="sHint" style="color:#94a3b8">MRP, weight, batch aur product ka naam ek saath frame me dikhao. Roshni kam ho to 🔦.</div>
+  </div>
+</section>
+
+<!-- RESULT -->
+<div id="res" class="res hide">
+  <div class="ico" id="rIco"></div>
+  <div class="tt" id="rTitle"></div>
+  <div class="mm" id="rMsg"></div>
+  <table id="rTable"></table>
+  <div class="acts" id="rActs"></div>
+</div>
+
+<!-- MANUAL ENTRY -->
+<div id="dManual" class="sheet hide"><div class="pn">
+  <h1>Manual entry (GM / Owner approval)</h1>
+  <p class="muted">Box pe jo likha hai wahi bharo. Slip se match hoga tabhi count hoga. ScanLog me MANUAL likha jayega.</p>
+  <label for="mLine">Item</label><select id="mLine"></select>
+  <label for="mName">Product naam / keyword (box pe)</label><input id="mName" autocomplete="off">
+  <label for="mMrp">MRP (₹)</label><input id="mMrp" inputmode="decimal" autocomplete="off">
+  <label for="mWeight">Weight (500 g / 1 kg / 1 L)</label><input id="mWeight" autocomplete="off">
+  <label for="mBatch">Batch</label><input id="mBatch" autocapitalize="characters" autocomplete="off">
+  <label for="mBarcode">Barcode (agar hai)</label><input id="mBarcode" inputmode="numeric" autocomplete="off">
+  <label for="mAdmin">GM / Owner naam</label><select id="mAdmin"></select>
+  <label for="mAdminPin">GM / Owner PIN</label><input id="mAdminPin" type="password" inputmode="numeric" autocomplete="off">
+  <div class="row" style="margin-top:16px"><button class="btn" id="mCancel">Cancel</button><button class="btn p grow" id="mOk">Verify & count</button></div>
+</div></div>
+
+<!-- SETTINGS -->
+<div id="dSet" class="sheet hide"><div class="pn">
+  <h1>Settings</h1>
+  <div class="sw"><div><b>Auto next box</b><div class="muted">GREEN ke baad tap nahi; box hatate hi agla scan</div></div><input type="checkbox" id="stAuto"></div>
+  <div class="sw"><div><b>Sound</b></div><input type="checkbox" id="stSound"></div>
+  <p class="muted" id="stInfo"></p>
+  <button class="btn w hide" id="stNotify">🔔 Notifications on karo</button>
+  <button class="btn w" id="stSync">Pending sync abhi bhejo</button>
+  <button class="btn w" id="stLogout">Logout</button>
+  <button class="btn w" id="stReset">Server setup dobara</button>
+  <button class="btn p w" id="stClose">Close</button>
+</div></div>
+
+<div id="busy" class="hide"><div class="spin"></div><div id="busyMsg"></div></div>
+<div id="toast"></div>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

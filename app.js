@@ -146,11 +146,12 @@
       S.users = r.users || []; pset('users', S.users);
       if (r.app) { S.cfg.n = r.app; pset('cfg', S.cfg); header(); }
       if (r.warehouse) { S.wh = r.warehouse; pset('wh', S.wh); }
+      pset('autoUpdate', r.autoUpdate !== false);
       $('loginWh').textContent = S.wh ? '🏭 Warehouse: ' + S.wh : '';
       if (S.cfg && S.cfg.n) $('loginApp').textContent = S.cfg.n;
       fillUsers();
       if (!S.users.length) loginError('Sheet ke Users tab me koi Active = YES naam nahi hai.');
-    }).catch(function (e) { loginError(e.message); }).then(function () { busy(false); });
+    }).catch(function (e) { loginError(e.message); }).then(function () { busy(false); applyUpdateIfIdle(); });
   }
   /* connection problem on the login screen stays visible (a toast is gone before anyone reads it) */
   function loginError(m) {
@@ -183,7 +184,23 @@
   }
 
   /* ===================== home: assigned documents ===================== */
-  function goHome() { S.cur = null; show('vHome'); renderDocs(); loadDocs(); if (S.tab === 'REPORT') loadReport(); }
+  function goHome() { S.cur = null; show('vHome'); renderDocs(); loadDocs(); if (S.tab === 'REPORT') loadReport(); applyUpdateIfIdle(); }
+
+  /* ===================== live update: new screens / rules arrive without a new APK ===================== */
+  var updReady = 0, apkAsked = false;
+  window.onUpdateReady = function (v) { updReady = v; applyUpdateIfIdle(); };
+  function applyUpdateIfIdle() {
+    if (!updReady || !N.reloadApp) return;
+    if (S.scan || S.queue.length || ['vLogin', 'vHome', 'vSetup'].indexOf(S.view) === -1) return;     // never in the middle of work
+    updReady = 0;
+    toast('✨ App update ho raha hai…');
+    setTimeout(function () { N.reloadApp(); }, 1200);
+  }
+  window.onApkNeeded = function (v, url) {
+    if (apkAsked || !N.openUrl) return;
+    apkAsked = true;
+    ask('Is update ke liye naya APK chahiye (ek baar). Abhi download karein? Install karne pe login aur data rehta hai.', 'Download').then(function (ok) { if (ok) N.openUrl(url); });
+  };
   function loadDocs(silent) {
     if (!silent) busy('Documents load ho rahe hain…');
     return api('docs').then(function (r) {
