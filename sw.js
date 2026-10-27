@@ -1,5 +1,5 @@
 /* Pick Verify offline cache: app files network-first, AI reader files cache-first */
-var CACHE = 'pickverify-web-v8';
+var CACHE = 'pickverify-web-v9';
 var CORE = ['./', 'index.html', 'app.js', 'engine.js', 'web-native.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
   'lib/tesseract.min.js', 'lib/worker.min.js', 'lib/zxing.min.js'];
 self.addEventListener('install', function (e) {

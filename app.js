@@ -262,7 +262,7 @@
       var icon = d.status === 'DONE' ? '✅' : d.type === 'PICK' ? '🚚' : '📥';
       return '<div class="card doc ' + st + '" data-doc="' + esc(d.doc) + '"><div class="dic">' + icon + '</div><div class="dmain">' +
         '<div class="dh"><b>' + esc(d.doc) + '</b><span class="chip ' + cls + '">' + esc(d.status) + '</span></div>' +
-        '<div class="dmeta">' + d.lines + ' lines · ' + d.qty + ' qty' + (d.assignedAt ? ' · ⏱ ' + ago(d.assignedAt) : '') + (admin && d.assignedTo ? ' · 👤 ' + esc(d.assignedTo) : '') +
+        '<div class="dmeta">' + d.lines + ' lines · ' + d.qty + ' qty' + (d.assignedAt ? ' · ⏱ ' + ago(d.assignedAt) : '') + (admin && d.assignedTo ? ' · 👤 ' + esc(d.assignedTo) + (d.noUser ? ' <b style="color:#b91c1c">⚠️ Users me nahi</b>' : '') : '') +
         (d.missing ? ' · ⚠️ sheet me data nahi' : '') + '</div>' +
         '<div class="prog"><div class="bar" style="width:' + pct + '%"></div></div>' +
         '<div class="dfoot"><span>' + d.doneLines + '/' + d.lines + ' lines · ' + d.done + '/' + d.qty + ' qty</span><span class="pct">' + pct + '%</span></div>' +

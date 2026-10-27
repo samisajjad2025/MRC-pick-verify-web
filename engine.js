@@ -344,14 +344,19 @@ var PVEngine = (function () {
       return t.length >= 3 && /[A-Z]/.test(t) && !/\d/.test(t) && !STOP[t];
     });
   }
+  /* one word: found anywhere ("Elaichi"). Several words: found TOGETHER as a phrase ("NSA ALOE", "PAJ VE IN"), so a carton printed
+   * for many variants ("brand name: PAJ VE / PAJ G / NSBA") does not match - only its own coding line does. */
   function checkKeyword(l, ctx) {
     var kw = trim(l.keyword);
     if (!kw) return na();
-    var toks = kw.toUpperCase().split(/[^A-Z0-9]+/).filter(function (t) { return t.length >= 2; });
+    var all = kw.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+    var toks = all.length > 1 ? all : all.filter(function (t) { return t.length >= 2; });
     if (!toks.length) return na();
     var miss = toks.filter(function (t) { return ctx.flat.indexOf(flatNorm(t)) === -1; });
-    return miss.length ? res('UNCLEAR', kw, toks.filter(function (t) { return miss.indexOf(t) === -1; }).join(' '), 'Keyword nahi dikha: ' + miss.join(' '))
-      : res('MATCH', kw, kw);
+    if (miss.length) return res('UNCLEAR', kw, toks.filter(function (t) { return miss.indexOf(t) === -1; }).join(' '), 'Keyword nahi dikha: ' + miss.join(' '));
+    if (toks.length > 1 && !new RegExp(' ' + toks.map(function (t) { return conf(t); }).join(' ?') + ' ').test(ctx.spaced))
+      return res('UNCLEAR', kw, '', 'Keyword ke shabd saath me nahi mile (coding line dikhao)');
+    return res('MATCH', kw, kw);
   }
   /* numbers printed as a product code: "(731774)", "# 726771", "ITEM CODE: 100234", "MATERIAL NO 731774" */
   function extractCodes(T) {
