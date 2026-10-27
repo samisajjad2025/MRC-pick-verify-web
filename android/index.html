@@ -158,6 +158,9 @@ table.rt th{background:#0f172a;color:#fff;padding:7px 6px;text-align:left;font-s
 table.rt td{padding:7px 6px;border-bottom:1px solid var(--line)}
 table.rt td.bad{color:var(--bad);font-weight:800}
 .card.vio{border-color:#fecaca}
+.langs{display:flex;gap:8px;justify-content:center;margin:14px 0 6px;flex-wrap:wrap}
+.langs button{border:1.5px solid #cbd5e1;background:#fff;border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px;color:#334155;font-family:inherit}
+.langs button.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
 </style>
 </head>
 <body>
@@ -179,6 +182,7 @@ table.rt td.bad{color:var(--bad);font-weight:800}
   <div><b>2</b>Neeche wala button dabao, QR camera ke saamne</div><div><b>3</b>Apna naam + PIN → kaam shuru</div></div>
   <button class="btn p w big" id="btnSetupQR">📷 Setup QR scan karo</button>
   <button class="btn ghost w" id="btnSetupManual">QR nahi hai? Manually daalo</button>
+  <div class="langs" data-nt><button data-lang="hl">Hinglish</button><button data-lang="en">English</button><button data-lang="hi">हिंदी</button></div>
   <div id="setupManual" class="hide">
     <label for="inUrl">Web app URL (/exec)</label><input id="inUrl" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
     <label for="inKey">API key</label><input id="inKey" autocomplete="off">
@@ -196,6 +200,7 @@ table.rt td.bad{color:var(--bad);font-weight:800}
   <button class="btn p w big" id="btnLogin">Login ▶</button>
   <div id="loginErr" class="hide" style="margin-top:12px;padding:10px 12px;border-radius:12px;background:#fef2f2;border:1px solid #fca5a5;color:#7f1d1d;font-size:14px;line-height:1.4"><div id="loginErrMsg"></div><button class="btn w" id="btnLoginRetry" style="margin-top:8px">⟳ Dobara try karo</button></div></div>
   <div class="trust"><span>📷 Camera se check</span><span>🔒 PIN login</span><span>📵 Offline bhi chalta hai</span></div>
+  <div class="langs" data-nt><button data-lang="hl">Hinglish</button><button data-lang="en">English</button><button data-lang="hi">हिंदी</button></div>
   <button class="btn ghost w" id="btnReSetup">Server badlo (setup)</button>
 </section>
 
@@ -269,6 +274,7 @@ table.rt td.bad{color:var(--bad);font-weight:800}
 <!-- SETTINGS -->
 <div id="dSet" class="sheet hide"><div class="pn">
   <h1>Settings</h1>
+  <div class="sw" data-nt><div><b>Language / भाषा</b></div></div><div class="langs" data-nt><button data-lang="hl">Hinglish</button><button data-lang="en">English</button><button data-lang="hi">हिंदी</button></div>
   <div class="sw"><div><b>Auto next box</b><div class="muted">GREEN ke baad tap nahi; box hatate hi agla scan</div></div><input type="checkbox" id="stAuto"></div>
   <div class="sw"><div><b>Sound</b></div><input type="checkbox" id="stSound"></div>
   <p class="muted" id="stInfo"></p>

@@ -14,7 +14,7 @@
  *******************************************************************/
 var PVEngine = (function () {
   'use strict';
-  var VERSION = 10207, API = 1;        // 1.2.7 · the app and the Sheet load newer engines only with the same API
+  var VERSION = 10208, API = 1;        // 1.2.8 · the app and the Sheet load newer engines only with the same API
 
   var DEF = {
     MRP_TOL: 0.01,          // Rs difference allowed

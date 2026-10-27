@@ -28,6 +28,353 @@
   function pget(k, def) { var v = N.getPref(k); if (!v) return def; try { var o = JSON.parse(v); return o == null ? def : o; } catch (e) { return def; } }
   function pset(k, v) { N.setPref(k, JSON.stringify(v == null ? null : v)); }
 
+  /* ===================== language: Hinglish (default) / English / हिंदी =====================
+     Only the screen words change. Names, products, document numbers, MRP, batch stay exactly as they are.
+     Every text the app draws passes through tr() (MutationObserver), so new screens need no extra code. */
+  var LANG = (function () { var v = pget('lang', 'hl'); return v === 'en' || v === 'hi' ? v : 'hl'; })();
+  var I18N = [   // [Hinglish, English, हिंदी]
+    ['SAHI — PICKED', 'CORRECT — PICKED', 'सही — उठाया'], ['SAHI — RECEIVED', 'CORRECT — RECEIVED', 'सही — मिला'],
+    ['DUPLICATE — MAT UTHAO', 'DUPLICATE — DO NOT PICK', 'डुप्लिकेट — मत उठाओ'], ['DUPLICATE — MAT LO', 'DUPLICATE — DO NOT TAKE', 'डुप्लिकेट — मत लो'],
+    ['EXTRA — MAT UTHAO', 'EXTRA — DO NOT PICK', 'एक्स्ट्रा — मत उठाओ'], ['EXTRA — QTY POORI HAI', 'EXTRA — QTY ALREADY FULL', 'एक्स्ट्रा — मात्रा पूरी है'],
+    ['⛔ DUPLICATE — count cancel:', '⛔ DUPLICATE — count cancelled:', '⛔ डुप्लिकेट — गिनती रद्द:'], ['⛔ DUPLICATE:', '⛔ DUPLICATE:', '⛔ डुप्लिकेट:'],
+    ['line DUPLICATE', 'line DUPLICATE', 'लाइन डुप्लिकेट'], ['line duplicate', 'line duplicate', 'लाइन डुप्लिकेट'],
+    ['Camera se Picking + Inward check — galat maal count hi nahi hota', 'Camera check for Picking + Inward — wrong goods are never counted', 'कैमरे से पिकिंग + इनवर्ड चेक — गलत माल गिना ही नहीं जाता'],
+    ['Laptop pe Sheet → menu', 'Laptop: Sheet → menu', 'लैपटॉप पर शीट → मेन्यू'],
+    ['Neeche wala button dabao, QR camera ke saamne', 'Tap the button below, hold the QR in front of the camera', 'नीचे वाला बटन दबाओ, QR कैमरे के सामने रखो'],
+    ['Apna naam + PIN → kaam shuru', 'Your name + PIN → start work', 'अपना नाम + PIN → काम शुरू'],
+    ['📷 Setup QR scan karo', '📷 Scan setup QR', '📷 सेटअप QR स्कैन करो'],
+    ['QR nahi hai? Manually daalo', 'No QR? Enter manually', 'QR नहीं है? खुद डालो'],
+    ['Save & connect', 'Save & connect', 'सेव करो और जोड़ो'],
+    ['Login ▶', 'Login ▶', 'लॉगिन ▶'],
+    ['⟳ Dobara try karo', '⟳ Try again', '⟳ दोबारा कोशिश करो'],
+    ['📷 Camera se check', '📷 Camera check', '📷 कैमरे से चेक'],
+    ['🔒 PIN login', '🔒 PIN login', '🔒 PIN लॉगिन'],
+    ['📵 Offline bhi chalta hai', '📵 Works offline too', '📵 बिना नेट भी चलता है'],
+    ['Server badlo (setup)', 'Change server (setup)', 'सर्वर बदलो (सेटअप)'],
+    ['Manual entry (GM / Owner approval)', 'Manual entry (GM / Owner approval)', 'मैनुअल एंट्री (GM / Owner मंज़ूरी)'],
+    ['Manual entry (GM)', 'Manual entry (GM)', 'मैनुअल एंट्री (GM)'],
+    ['Document close karo', 'Close document', 'डॉक्यूमेंट बंद करो'],
+    ['Label camera ke saamne rakho', 'Hold the label in front of the camera', 'लेबल कैमरे के सामने रखो'],
+    ['MRP, weight, batch aur product ka naam ek saath frame me dikhao. Roshni kam ho to 🔦.', 'Show MRP, weight, batch and product name together in the frame. Low light? Use 🔦.', 'MRP, वज़न, बैच और प्रोडक्ट का नाम एक साथ फ्रेम में दिखाओ। रोशनी कम हो तो 🔦।'],
+    ['Box pe jo likha hai wahi bharo. Slip se match hoga tabhi count hoga. ScanLog me MANUAL likha jayega.', 'Enter exactly what is printed on the box. It counts only if it matches the slip. ScanLog will show MANUAL.', 'डिब्बे पर जो लिखा है वही भरो। स्लिप से मैच होगा तभी गिनती होगी। ScanLog में MANUAL लिखा जाएगा।'],
+    ['Product naam / keyword (box pe)', 'Product name / keyword (on box)', 'प्रोडक्ट नाम / कीवर्ड (डिब्बे पर)'],
+    ['Weight (500 g / 1 kg / 1 L)', 'Weight (500 g / 1 kg / 1 L)', 'वज़न (500 g / 1 kg / 1 L)'],
+    ['Barcode (agar hai)', 'Barcode (if any)', 'बारकोड (अगर है)'],
+    ['GM / Owner naam', 'GM / Owner name', 'GM / Owner नाम'],
+    ['Verify & count', 'Verify & count', 'जाँचो और गिनो'],
+    ['Auto next box', 'Auto next box', 'अगला डिब्बा अपने आप'],
+    ['GREEN ke baad tap nahi; box hatate hi agla scan', 'No tap after GREEN; next scan starts when you move the box', 'GREEN के बाद टैप नहीं; डिब्बा हटाते ही अगला स्कैन'],
+    ['🔔 Notifications on karo', '🔔 Turn on notifications', '🔔 नोटिफिकेशन चालू करो'],
+    ['Pending sync abhi bhejo', 'Send pending sync now', 'बाकी सिंक अभी भेजो'],
+    ['🔑 Mera PIN badlo', '🔑 Change my PIN', '🔑 मेरा PIN बदलो'],
+    ['Mera PIN badlo', 'Change my PIN', 'मेरा PIN बदलो'],
+    ['👤 Kisi ka PIN reset (GM / Owner)', "👤 Reset someone's PIN (GM / Owner)", '👤 किसी का PIN रीसेट (GM / Owner)'],
+    ['PIN reset (GM / Owner)', 'PIN reset (GM / Owner)', 'PIN रीसेट (GM / Owner)'],
+    ['Server setup dobara', 'Set up server again', 'सर्वर सेटअप दोबारा'],
+    ['Server setup nahi hua', 'Server not set up', 'सर्वर सेटअप नहीं हुआ'],
+    ['Network slow / band hai', 'Network slow / off', 'नेटवर्क धीमा / बंद है'],
+    ['Network / server error', 'Network / server error', 'नेटवर्क / सर्वर एरर'],
+    ['Server ka jawab galat — Web app deploy (Anyone) check karo', 'Bad server reply — check Web app deploy (Anyone)', 'सर्वर का जवाब गलत — Web app deploy (Anyone) चेक करो'],
+    ['Setup ho gaya ✔', 'Setup done ✔', 'सेटअप हो गया ✔'],
+    ['Ye Pick Verify ka setup QR nahi hai', 'This is not a Pick Verify setup QR', 'यह Pick Verify का सेटअप QR नहीं है'],
+    ['Server se connect ho raha hai…', 'Connecting to server…', 'सर्वर से जुड़ रहा है…'],
+    ['Sheet ke Users tab me koi Active = YES naam nahi hai.', "No name with Active = YES in the Sheet's Users tab.", 'शीट के Users टैब में कोई Active = YES नाम नहीं है।'],
+    ['Sheet menu → 📱 App setup QR → neeche "Server badlo (setup)" se QR dobara scan karo.', 'Sheet menu → 📱 App setup QR → scan the QR again with "Change server (setup)" below.', 'शीट मेन्यू → 📱 App setup QR → नीचे "सर्वर बदलो (सेटअप)" से QR दोबारा स्कैन करो।'],
+    ['Net check karo (WiFi / data), phir dobara try.', 'Check internet (WiFi / data), then try again.', 'नेट चेक करो (WiFi / डेटा), फिर दोबारा कोशिश करो।'],
+    ['⚠️ Server se naam nahi aaye:', '⚠️ Could not get names from server:', '⚠️ सर्वर से नाम नहीं आए:'],
+    ['— naam chuno —', '— choose name —', '— नाम चुनो —'],
+    ['Naam aur PIN daalo', 'Enter name and PIN', 'नाम और PIN डालो'],
+    ['Login…', 'Logging in…', 'लॉगिन हो रहा है…'],
+    ['✨ App update ho raha hai…', '✨ Updating app…', '✨ ऐप अपडेट हो रहा है…'],
+    ['Is update ke liye naya APK chahiye (ek baar). Abhi download karein? Install karne pe login aur data rehta hai.', 'This update needs a new APK (one time). Download now? Login and data stay after install.', 'इस अपडेट के लिए नया APK चाहिए (एक बार)। अभी डाउनलोड करें? इंस्टॉल करने पर लॉगिन और डेटा रहता है।'],
+    ['Documents load ho rahe hain…', 'Loading documents…', 'डॉक्यूमेंट लोड हो रहे हैं…'],
+    ['📵 Offline — purani list dikh rahi hai', '📵 Offline — showing saved list', '📵 ऑफलाइन — पुरानी लिस्ट दिख रही है'],
+    ['GM / Owner approval ke bina pick nahi hoga', 'cannot be picked without GM / Owner approval', 'GM / Owner की मंज़ूरी के बिना पिक नहीं होगा'],
+    ['GM / Owner approval ke bina count nahi hoga.', 'Will not count without GM / Owner approval.', 'GM / Owner की मंज़ूरी के बिना गिनती नहीं होगी।'],
+    ['qty — app kholo aur scan karo', 'qty — open the app and scan', 'मात्रा — ऐप खोलो और स्कैन करो'],
+    ['naye duplicate documents', 'new duplicate documents', 'नए डुप्लिकेट डॉक्यूमेंट'],
+    ['naye documents assign hue', 'new documents assigned', 'नए डॉक्यूमेंट असाइन हुए'],
+    ['naye documents', 'new documents', 'नए डॉक्यूमेंट'],
+    ['Naya kaam:', 'New work:', 'नया काम:'],
+    ['Naya kaam', 'New work', 'नया काम'],
+    ['Inward GRN', 'Inward GRN', 'इनवर्ड GRN'],
+    ['Pick Slip', 'Pick Slip', 'पिक स्लिप'],
+    ['min pehle', 'min ago', 'मिनट पहले'],
+    ['ghante pehle', 'hours ago', 'घंटे पहले'],
+    ['din pehle', 'days ago', 'दिन पहले'],
+    ['ghante se', 'hrs', 'घंटे से'],
+    ['abhi', 'just now', 'अभी'],
+    ['Good morning', 'Good morning', 'सुप्रभात'],
+    ['Good evening', 'Good evening', 'शुभ संध्या'],
+    ['Namaste', 'Hello', 'नमस्ते'],
+    ['Shuru nahi', 'Not started', 'शुरू नहीं'],
+    ['Chal rahe', 'In progress', 'चल रहे'],
+    ['Chal raha', 'In progress', 'चल रहा'],
+    ['⛔ Duplicate', '⛔ Duplicate', '⛔ डुप्लिकेट'],
+    ['Complete ✓', 'Complete ✓', 'पूरा ✓'],
+    ['Aaj warehouse ka haal', "Today's warehouse status", 'आज वेयरहाउस का हाल'],
+    ['Sab kaam complete — shabaash!', 'All work complete — well done!', 'सारा काम पूरा — शाबाश!'],
+    ['⚠️ Users me nahi', '⚠️ Not in Users', '⚠️ Users में नहीं'],
+    ['sheet me data nahi', 'no data in sheet', 'शीट में डेटा नहीं'],
+    ['Koi pick slip assign nahi hai', 'No pick slip assigned', 'कोई पिक स्लिप असाइन नहीं है'],
+    ['Koi inward assign nahi hai', 'No inward assigned', 'कोई इनवर्ड असाइन नहीं है'],
+    ['Naya kaam aate hi 🔔 notification aayega', "You'll get a 🔔 notification when new work comes", 'नया काम आते ही 🔔 नोटिफिकेशन आएगा'],
+    ['Lines load ho rahi hain…', 'Loading lines…', 'लाइनें लोड हो रही हैं…'],
+    ['📵 Offline — saved lines', '📵 Offline — saved lines', '📵 ऑफलाइन — सेव की हुई लाइनें'],
+    ['👁 Sirf dekhne ke liye — ye document aapko assign nahi hai.', '👁 View only — this document is not assigned to you.', '👁 सिर्फ देखने के लिए — यह डॉक्यूमेंट आपको असाइन नहीं है।'],
+    ['item(s) ke liye sheet me Batch / Barcode / Keyword / naam nahi hai — inko camera verify nahi kar sakta. GM sheet me Batch ya Keyword bhare.', 'item(s) have no Batch / Barcode / Keyword / name in the sheet — the camera cannot verify them. GM should fill Batch or Keyword in the sheet.', 'आइटम के लिए शीट में Batch / Barcode / Keyword / नाम नहीं है — कैमरा इन्हें चेक नहीं कर सकता। GM शीट में Batch या Keyword भरे।'],
+    ['label se record', 'record from label', 'लेबल से रिकॉर्ड'],
+    ['GM / Owner approve', 'GM / Owner approve', 'GM / Owner मंज़ूरी'],
+    ['✔ Duplicate approved:', '✔ Duplicate approved:', '✔ डुप्लिकेट मंज़ूर:'],
+    ['Check nahi:', 'Not checked:', 'चेक नहीं:'],
+    ['(box pe nahi)', '(not on box)', '(डिब्बे पर नहीं)'],
+    ['box pe nahi', 'not on box', 'डिब्बे पर नहीं'],
+    ['galat scan', 'wrong scan', 'गलत स्कैन'],
+    ['Kam mila', 'Short', 'कम मिला'],
+    ['Koi line nahi', 'No lines', 'कोई लाइन नहीं'],
+    ['Pick: koi bhi item', 'Pick: any item', 'पिक: कोई भी आइटम'],
+    ['Inward: koi bhi item', 'Inward: any item', 'इनवर्ड: कोई भी आइटम'],
+    ['Sheet me menu 📦 Pick Verify → App setup QR kholo aur QR camera ke saamne rakho.', 'In the Sheet open menu 📦 Pick Verify → App setup QR and hold the QR in front of the camera.', 'शीट में मेन्यू 📦 Pick Verify → App setup QR खोलो और QR कैमरे के सामने रखो।'],
+    ['QR dhoondh raha hai…', 'Looking for QR…', 'QR ढूँढ रहा है…'],
+    ['✅ Ho gaya — box hatao, agla box dikhao', '✅ Done — remove the box, show the next one', '✅ हो गया — डिब्बा हटाओ, अगला डिब्बा दिखाओ'],
+    ['Match ho raha hai… phone hilao mat', 'Matching… keep the phone still', 'मैच हो रहा है… फ़ोन मत हिलाओ'],
+    ['Batch / product code wali line (coding) bhi dikhao', 'Also show the batch / product code line (coding)', 'बैच / प्रोडक्ट कोड वाली लाइन (कोडिंग) भी दिखाओ'],
+    ['Do items same lag rahe hain — product naam wala hissa dikhao', 'Two items look the same — show the product name part', 'दो आइटम एक जैसे लग रहे हैं — प्रोडक्ट नाम वाला हिस्सा दिखाओ'],
+    ['Product code saaf nahi padha — coding wali line ke paas lao, roshni me', 'Product code not clear — bring the coding line closer, in good light', 'प्रोडक्ट कोड साफ नहीं पढ़ा — कोडिंग वाली लाइन पास लाओ, रोशनी में'],
+    ['Product code saaf nahi padha', 'Product code not clear', 'प्रोडक्ट कोड साफ नहीं पढ़ा'],
+    ['Label padh raha hai…', 'Reading label…', 'लेबल पढ़ रहा है…'],
+    ['Qty zyada hai', 'Qty too high', 'मात्रा ज़्यादा है'],
+    ['🔄 2 side se check ✓', '🔄 Checked from 2 sides ✓', '🔄 2 साइड से चेक ✓'],
+    ['Batch record:', 'Batch recorded:', 'बैच रिकॉर्ड:'],
+    ['🎉 Document complete!', '🎉 Document complete!', '🎉 डॉक्यूमेंट पूरा!'],
+    ['✔ List pe jao', '✔ Back to list', '✔ लिस्ट पर जाओ'],
+    ['📷 AGLA BOX', '📷 NEXT BOX', '📷 अगला डिब्बा'],
+    ['Scan band karo', 'Stop scan', 'स्कैन बंद करो'],
+    ['INWARD MAT KARO', 'DO NOT RECEIVE', 'इनवर्ड मत करो'],
+    ['GALAT MAAL', 'WRONG GOODS', 'गलत माल'],
+    ['MAT UTHAO', 'DO NOT PICK', 'मत उठाओ'],
+    ['MAT LO', 'DO NOT TAKE', 'मत लो'],
+    ['QTY POORI HAI', 'QTY ALREADY FULL', 'मात्रा पूरी है'],
+    ['MATCH NAHI HUA', 'NO MATCH', 'मैच नहीं हुआ'],
+    ['SAHI', 'CORRECT', 'सही'],
+    ['Ye product is document me hai hi nahi.', 'This product is not in this document.', 'यह प्रोडक्ट इस डॉक्यूमेंट में है ही नहीं।'],
+    ['Qty already poori hai', 'Qty already complete', 'मात्रा पहले ही पूरी है'],
+    ['Wapas rakho.', 'Put it back.', 'वापस रखो।'],
+    ['Slip se match nahi hua', 'Does not match the slip', 'स्लिप से मैच नहीं हुआ'],
+    ['Neeche dekho kya alag hai 👇', 'See below what is different 👇', 'नीचे देखो क्या अलग है 👇'],
+    ['OK — box wapas rakh diya', 'OK — box put back', 'ठीक है — डिब्बा वापस रख दिया'],
+    ['count cancel', 'count cancelled', 'गिनती रद्द'],
+    ['Sab items complete hain', 'All items are complete', 'सारे आइटम पूरे हैं'],
+    ['Box pe jo likha hai woh bharo', 'Fill in what is written on the box', 'डिब्बे पर जो लिखा है वो भरो'],
+    ['GM / Owner PIN daalo', 'Enter GM / Owner PIN', 'GM / Owner PIN डालो'],
+    ['Server pe check ho raha hai…', 'Checking on server…', 'सर्वर पर चेक हो रहा है…'],
+    ['Pehle GM / Owner approve kare.', 'GM / Owner must approve first.', 'पहले GM / Owner मंज़ूरी दे।'],
+    ['Details slip se match nahi', 'Details do not match the slip', 'डिटेल स्लिप से मैच नहीं'],
+    ['Poori details chahiye', 'Full details needed', 'पूरी डिटेल चाहिए'],
+    ['Batch / product naam / MRP / weight sab bharo.', 'Fill batch / product name / MRP / weight.', 'बैच / प्रोडक्ट नाम / MRP / वज़न सब भरो।'],
+    ['GM / Owner approval', 'GM / Owner approval', 'GM / Owner मंज़ूरी'],
+    ['PIN daalo', 'Enter PIN', 'PIN डालो'],
+    ['Kya ye sach me naya dispatch hai (partial delivery / naya order)? Approve karne ke baad hi pick hoga. Ye ScanLog + Violations me aapke naam se likha jayega aur HO ko mail jayega.', 'Is this really a new dispatch (partial delivery / new order)? It can be picked only after approval. This is recorded in ScanLog + Violations under your name and mailed to HO.', 'क्या यह सच में नया डिस्पैच है (आंशिक डिलीवरी / नया ऑर्डर)? मंज़ूरी के बाद ही पिक होगा। यह ScanLog + Violations में आपके नाम से लिखा जाएगा और HO को मेल जाएगा।'],
+    ['Haan, approve', 'Yes, approve', 'हाँ, मंज़ूर'],
+    ['Approve ho raha hai…', 'Approving…', 'मंज़ूरी हो रही है…'],
+    ['✔ Approved — ab scan kar sakte ho', '✔ Approved — you can scan now', '✔ मंज़ूर — अब स्कैन कर सकते हो'],
+    ['Scan hua:', 'Scanned:', 'स्कैन हुआ:'],
+    ['Kitna mila? (zaroori)', 'How many found? (required)', 'कितना मिला? (ज़रूरी)'],
+    ['Khule pieces', 'Loose pieces', 'खुले पीस'],
+    ['Khule pcs', 'Loose pcs', 'खुले पीस'],
+    ['Reason (zaroori)', 'Reason (required)', 'कारण (ज़रूरी)'],
+    ['Stock nahi mila', 'Stock not found', 'स्टॉक नहीं मिला'],
+    ['Expiry / near expiry', 'Expiry / near expiry', 'एक्सपायरी / एक्सपायरी के पास'],
+    ['Batch alag hai', 'Different batch', 'बैच अलग है'],
+    ['Location pe nahi', 'Not at location', 'लोकेशन पर नहीं'],
+    ['Other ho to zaroori', 'Required if Other', 'अन्य हो तो ज़रूरी'],
+    ['Short save karo', 'Save short', 'कम सेव करो'],
+    ['Total mila:', 'Total found:', 'कुल मिला:'],
+    ['Kitna mila — number daalna zaroori hai', 'How many found — a number is required', 'कितना मिला — नंबर डालना ज़रूरी है'],
+    ['Poora mila to Kam mila nahi — baaki boxes scan karo', 'If all were found it is not short — scan the remaining boxes', 'पूरा मिला तो कम मिला नहीं — बाकी डिब्बे स्कैन करो'],
+    ['Reason chuno', 'Choose a reason', 'कारण चुनो'],
+    ['"Other" ke saath remark likho', 'Write a remark with "Other"', '"Other" के साथ टिप्पणी लिखो'],
+    ['"Other" ke saath remark likhna zaroori hai', 'A remark is required with "Other"', '"Other" के साथ टिप्पणी लिखना ज़रूरी है'],
+    ['Short save ho raha hai…', 'Saving short…', 'कम सेव हो रहा है…'],
+    ['✔ Saari lines ho gayi — Document close karo', '✔ All lines done — close the document', '✔ सारी लाइनें हो गईं — डॉक्यूमेंट बंद करो'],
+    ['Short save ✔', 'Short saved ✔', 'कम सेव ✔'],
+    ['Network chahiye — Kam mila online hi save hota hai', 'Internet needed — short is saved only online', 'नेट चाहिए — कम मिला ऑनलाइन ही सेव होता है'],
+    ['Report load ho raha hai…', 'Loading report…', 'रिपोर्ट लोड हो रही है…'],
+    ['Report nahi mila — ⟳ dabao', 'No report — tap ⟳', 'रिपोर्ट नहीं मिली — ⟳ दबाओ'],
+    ['Sahi scans', 'Correct scans', 'सही स्कैन'],
+    ['Galat scans', 'Wrong scans', 'गलत स्कैन'],
+    ['Accuracy %', 'Accuracy %', 'सटीकता %'],
+    ['Dispatch qty', 'Dispatch qty', 'डिस्पैच मात्रा'],
+    ['Inward qty', 'Inward qty', 'इनवर्ड मात्रा'],
+    ['Short lines', 'Short lines', 'कम लाइनें'],
+    ['Dup try', 'Dup attempts', 'डुप्लिकेट कोशिश'],
+    ['Short close', 'Short close', 'कम के साथ बंद'],
+    ['Assign nahi', 'Not assigned', 'असाइन नहीं'],
+    ['Supervisor efficiency', 'Supervisor efficiency', 'सुपरवाइज़र कार्यक्षमता'],
+    ['Abhi koi scan nahi', 'No scans yet', 'अभी कोई स्कैन नहीं'],
+    ['Koi violation nahi ✔', 'No violations ✔', 'कोई उल्लंघन नहीं ✔'],
+    ['Koi short nahi', 'No shorts', 'कोई कमी नहीं'],
+    ['Pending documents', 'Pending documents', 'बाकी डॉक्यूमेंट'],
+    ['Sab complete ✔', 'All complete ✔', 'सब पूरा ✔'],
+    ['Document complete. Close karein?', 'Document complete. Close it?', 'डॉक्यूमेंट पूरा। बंद करें?'],
+    ['Close karo', 'Close', 'बंद करो'],
+    ['Close ho raha hai…', 'Closing…', 'बंद हो रहा है…'],
+    ['Done ✔', 'Done ✔', 'पूरा ✔'],
+    ['Pending sync:', 'Pending sync:', 'बाकी सिंक:'],
+    ['Kiska PIN', 'Whose PIN', 'किसका PIN'],
+    ['Naya PIN (4-6 number)', 'New PIN (4-6 digits)', 'नया PIN (4-6 अंक)'],
+    ['Naya PIN dobara', 'New PIN again', 'नया PIN दोबारा'],
+    ['Sheet me PIN 🔒 chhupa rehta hai — koi padh nahi sakta. Naya PIN sirf us bande ko batao.', 'PINs stay hidden 🔒 in the Sheet — nobody can read them. Tell the new PIN only to that person.', 'शीट में PIN 🔒 छुपा रहता है — कोई पढ़ नहीं सकता। नया PIN सिर्फ उसी व्यक्ति को बताओ।'],
+    ['PIN 4 se 6 number ka hona chahiye', 'PIN must be 4 to 6 digits', 'PIN 4 से 6 अंक का होना चाहिए'],
+    ['PIN 4 se 6 number ka', 'PIN must be 4 to 6 digits', 'PIN 4 से 6 अंक का'],
+    ['Dono PIN same nahi', 'The two PINs do not match', 'दोनों PIN एक जैसे नहीं'],
+    ['PIN badal raha hai…', 'Changing PIN…', 'PIN बदल रहा है…'],
+    ['✔ PIN badal gaya — agli baar naye PIN se login', '✔ PIN changed — use the new PIN next time', '✔ PIN बदल गया — अगली बार नए PIN से लॉगिन'],
+    ['PIN reset ho raha hai…', 'Resetting PIN…', 'PIN रीसेट हो रहा है…'],
+    ['📦 BOX mode — 1 scan = poora box (Case Size)', '📦 BOX mode — 1 scan = full box (Case Size)', '📦 बॉक्स मोड — 1 स्कैन = पूरा डिब्बा (Case Size)'],
+    ['Sync try ho raha hai…', 'Trying to sync…', 'सिंक की कोशिश हो रही है…'],
+    ['API key galat hai — app me setup QR dobara scan karo', 'Wrong API key — scan the setup QR again in the app', 'API key गलत है — ऐप में सेटअप QR दोबारा स्कैन करो'],
+    ['Duplicate approve sirf GM / Owner kar sakta hai', 'Only GM / Owner can approve duplicates', 'डुप्लिकेट मंज़ूरी सिर्फ GM / Owner दे सकता है'],
+    ['Kitna mila — qty daalna zaroori hai', 'How many found — qty is required', 'कितना मिला — मात्रा डालना ज़रूरी है'],
+    ['Line nahi mili — refresh karo', 'Line not found — refresh', 'लाइन नहीं मिली — रिफ्रेश करो'],
+    ['Manual entry ke liye GM / Owner ka naam + PIN chahiye', 'Manual entry needs GM / Owner name + PIN', 'मैनुअल एंट्री के लिए GM / Owner का नाम + PIN चाहिए'],
+    ['Naam ya PIN galat hai', 'Wrong name or PIN', 'नाम या PIN गलत है'],
+    ['Owner ka PIN sirf Owner badal sakta hai', "Only the Owner can change the Owner's PIN", 'Owner का PIN सिर्फ Owner बदल सकता है'],
+    ['PIN reset sirf GM / Owner kar sakte hain', 'Only GM / Owner can reset PINs', 'PIN रीसेट सिर्फ GM / Owner कर सकते हैं'],
+    ['Report sirf GM / Owner / Operator dekh sakte hain', 'Only GM / Owner / Operator can see the report', 'रिपोर्ट सिर्फ GM / Owner / Operator देख सकते हैं'],
+    ['Scan data nahi mila', 'Scan data not received', 'स्कैन डेटा नहीं मिला'],
+    ['Short ka reason chuno', 'Choose a reason for short', 'कम का कारण चुनो'],
+    ['Type galat hai', 'Wrong type', 'टाइप गलत है'],
+    ['Ye document aapko assign nahi hai', 'This document is not assigned to you', 'यह डॉक्यूमेंट आपको असाइन नहीं है'],
+    ['Ye line pehle se complete / short hai', 'This line is already complete / short', 'यह लाइन पहले से पूरी / कम है'],
+    ['Ye naam Users me (Active) nahi', 'This name is not in Users (Active)', 'यह नाम Users में (Active) नहीं'],
+    ['Ye naam Users me nahi', 'This name is not in Users', 'यह नाम Users में नहीं'],
+    ['Do alag MRP dikh rahe — ek hi box frame me rakho', 'Two different MRPs visible — keep only one box in frame', 'दो अलग MRP दिख रहे — एक ही डिब्बा फ्रेम में रखो'],
+    ['Do alag batch dikh rahe — ek hi box frame me rakho', 'Two different batches visible — keep only one box in frame', 'दो अलग बैच दिख रहे — एक ही डिब्बा फ्रेम में रखो'],
+    ['Keyword ke shabd saath me nahi mile (coding line dikhao)', 'Keyword words not found together (show the coding line)', 'कीवर्ड के शब्द साथ में नहीं मिले (कोडिंग लाइन दिखाओ)'],
+    ['Wholesale carton: naam se pehchan nahi — code / batch / keyword chahiye', 'Wholesale carton: name is not proof — code / batch / keyword needed', 'होलसेल कार्टन: नाम से पहचान नहीं — कोड / बैच / कीवर्ड चाहिए'],
+    ['Keyword nahi dikha:', 'Keyword not seen:', 'कीवर्ड नहीं दिखा:'],
+    ['Batch nahi dikha', 'Batch not seen', 'बैच नहीं दिखा'],
+    ['Weight nahi dikha', 'Weight not seen', 'वज़न नहीं दिखा'],
+    ['MRP nahi dikha', 'MRP not seen', 'MRP नहीं दिखा'],
+    ['MRP saaf nahi', 'MRP not clear', 'MRP साफ नहीं'],
+    ['Same line do baar aayi', 'Same line came twice', 'वही लाइन दो बार आई'],
+    ['same item', 'same item', 'वही आइटम'],
+    ['same qty', 'same qty', 'वही मात्रा'],
+    ['Warehouse:', 'Warehouse:', 'वेयरहाउस:'],
+    ['PICKING', 'PICKING', 'पिकिंग'], ['INWARD', 'INWARD', 'इनवर्ड'], ['📊 REPORT', '📊 REPORT', '📊 रिपोर्ट'],
+    ['Picking', 'Picking', 'पिकिंग'], ['Inward', 'Inward', 'इनवर्ड'],
+    ['📦 BOX', '📦 BOX', '📦 बॉक्स'], ['PCS', 'PCS', 'पीस'], ['📷 SCAN', '📷 SCAN', '📷 स्कैन'],
+    ['IN PROGRESS', 'IN PROGRESS', 'चालू'], ['CLOSED-SHORT', 'CLOSED-SHORT', 'कम के साथ बंद'], ['UNASSIGNED', 'UNASSIGNED', 'असाइन नहीं'],
+    ['PENDING', 'PENDING', 'बाकी'], ['PARTIAL', 'PARTIAL', 'आधा'], ['PICKED', 'PICKED', 'उठाया'], ['RECEIVED', 'RECEIVED', 'मिला'],
+    ['SHORT', 'SHORT', 'कम'], ['OPEN', 'OPEN', 'नया'], ['DONE', 'DONE', 'पूरा'], ['DUPLICATE', 'DUPLICATE', 'डुप्लिकेट'], ['EXTRA', 'EXTRA', 'एक्स्ट्रा'],
+    ['Settings', 'Settings', 'सेटिंग्स'], ['Sound', 'Sound', 'आवाज़'], ['Logout', 'Logout', 'लॉगआउट'], ['Close', 'Close', 'बंद करो'],
+    ['Cancel', 'Cancel', 'रद्द करो'], ['Approve', 'Approve', 'मंज़ूर करो'], ['Save', 'Save', 'सेव करो'], ['Download', 'Download', 'डाउनलोड'],
+    ['Nahi', 'No', 'नहीं'], ['Haan', 'Yes', 'हाँ'], ['OK', 'OK', 'ठीक है'],
+    ['Naam', 'Name', 'नाम'], ['Item', 'Item', 'आइटम'], ['Remark', 'Remark', 'टिप्पणी'], ['Reason', 'Reason', 'कारण'],
+    ['Barcode', 'Barcode', 'बारकोड'], ['Code', 'Code', 'कोड'], ['Product', 'Product', 'प्रोडक्ट'], ['Weight', 'Weight', 'वज़न'], ['Wt', 'Wt', 'वज़न'],
+    ['Batch', 'Batch', 'बैच'], ['Keyword', 'Keyword', 'कीवर्ड'], ['Slip:', 'Slip:', 'स्लिप:'], ['Slip', 'Slip', 'स्लिप'], ['Box', 'Box', 'डिब्बा'], ['box', 'box', 'डिब्बा'],
+    ['Short:', 'Short:', 'कम:'], ['Short', 'Short', 'कम'], ['short', 'short', 'कम'], ['Manual', 'Manual', 'मैनुअल'], ['(manual)', '(manual)', '(मैनुअल)'], ['(record)', '(record)', '(रिकॉर्ड)'],
+    ['Stock', 'Stock', 'स्टॉक'], ['Damage', 'Damage', 'डैमेज'], ['Other', 'Other', 'अन्य'],
+    ['Pieces', 'Pieces', 'पीस'], ['Pcs', 'Pcs', 'पीस'], ['pcs', 'pcs', 'पीस'], ['piece', 'piece', 'पीस'],
+    ['lines', 'lines', 'लाइनें'], ['line', 'line', 'लाइन'], ['Qty', 'Qty', 'मात्रा'], ['qty', 'qty', 'मात्रा'],
+    ['Documents', 'Documents', 'डॉक्यूमेंट'], ['Violations', 'Violations', 'उल्लंघन'], ['Complete', 'Complete', 'पूरे'],
+    ['Sahi', 'Correct', 'सही'], ['Galat', 'Wrong', 'गलत'], ['Acc %', 'Acc %', 'सटीकता %'], ['Time', 'Time', 'समय'], ['/hr', '/hr', '/घंटा'],
+    ['Aaj', 'Today', 'आज'], ['Kal', 'Yesterday', 'कल'], ['7 din', '7 days', '7 दिन'], ['updated', 'updated', 'अपडेट'], ['by', 'by', 'द्वारा'],
+    ['User:', 'User:', 'यूज़र:'], ['Owner', 'Owner', 'ओनर'], ['Operator', 'Operator', 'ऑपरेटर'], ['Supervisor', 'Supervisor', 'सुपरवाइज़र'],
+    ['Invoice', 'Invoice', 'इनवॉइस'], ['Order', 'Order', 'ऑर्डर'], ['Party', 'Party', 'पार्टी'], ['pending', 'pending', 'बाकी']
+  ];
+  var I18T = [   // sentences with numbers / names inside: [pattern, English, हिंदी]
+    [/Aaj aapke (\d+) document baaki hain/, 'You have $1 documents pending today', 'आज आपके $1 डॉक्यूमेंट बाकी हैं'],
+    [/isi document me (\d+) qty pehle hi pick\/receive ho chuka/, '$1 qty already picked/received in this document', 'इसी डॉक्यूमेंट में $1 मात्रा पहले ही पिक/रिसीव हो चुकी'],
+    [/(\S+) me (\d+) qty pehle hi pick\/receive ho chuka/, '$2 qty already picked/received in $1', '$1 में $2 मात्रा पहले ही पिक/रिसीव हो चुकी'],
+    [/isi document me bhi hai \(abhi pending\)/, 'also in this document (still pending)', 'इसी डॉक्यूमेंट में भी है (अभी बाकी)'],
+    [/(\S+) me bhi hai \(abhi pending\)/, 'also in $1 (still pending)', '$1 में भी है (अभी बाकी)'],
+    [/Sirf (\d+) pcs baaki hai \((.+?)\), aapne (\d+) pcs set kiya hai/, 'Only $1 pcs left ($2), you set $3 pcs', 'सिर्फ $1 पीस बाकी हैं ($2), आपने $3 पीस सेट किए हैं'],
+    [/PCS (\d+) karo aur dobara scan/, 'Set PCS to $1 and scan again', 'PCS $1 करो और दोबारा स्कैन'],
+    [/\(Is item ka Case Size sheet me nahi — (\d+) pcs gina\)/, '(No Case Size for this item in the sheet — counted $1 pcs)', '(इस आइटम का Case Size शीट में नहीं — $1 पीस गिने)'],
+    [/Ye "([^"]*)" hai,\n"([^"]*)" nahi\./, 'This is "$1",\nnot "$2".', 'यह "$1" है,\n"$2" नहीं।'],
+    [/🔄 Dabba ghumao — (.+) wali side dikhao/, '🔄 Turn the box — show the $1 side', '🔄 डिब्बा घुमाओ — $1 वाली साइड दिखाओ'],
+    [/📦 BOX mode: 1 scan = (\d+) poora box\./, '📦 BOX mode: 1 scan = $1 full box.', '📦 बॉक्स मोड: 1 स्कैन = $1 पूरा डिब्बा।'],
+    [/PCS mode — 1 scan = (\d+) piece/, 'PCS mode — 1 scan = $1 piece', 'पीस मोड — 1 स्कैन = $1 पीस'],
+    [/Server ne ek count reject kiya \(row (\d+)\) — dobara scan karo/, 'Server rejected one count (row $1) — scan again', 'सर्वर ने एक गिनती रिजेक्ट की (row $1) — दोबारा स्कैन करो'],
+    [/Pehle sync hone do \((\d+) pending\), phir Kam mila/, 'Let sync finish first ($1 pending), then Short', 'पहले सिंक होने दो ($1 बाकी), फिर कम मिला'],
+    [/Pehle sync hone do \((\d+) pending\)/, 'Let sync finish first ($1 pending)', 'पहले सिंक होने दो ($1 बाकी)'],
+    [/(\d+) line baaki hai — har line scan karo ya "Kam mila" \+ reason do/, '$1 line(s) left — scan every line or give "Short" + reason', '$1 लाइन बाकी है — हर लाइन स्कैन करो या "कम मिला" + कारण दो'],
+    [/Aapne (\d+) likha, scan sirf (\d+) hua\. Jo mila hai woh pehle scan karo\./, 'You wrote $1, only $2 scanned. Scan what you found first.', 'आपने $1 लिखा, स्कैन सिर्फ $2 हुआ। जो मिला है वो पहले स्कैन करो।'],
+    [/Aapne (\d+) likha, par scan (\d+) hua hai\. Jo mila hai woh scan karo, phir Kam mila karo\./, 'You wrote $1, but $2 were scanned. Scan what you found, then mark Short.', 'आपने $1 लिखा, पर स्कैन $2 हुआ है। जो मिला है वो स्कैन करो, फिर कम मिला करो।'],
+    [/Scan (\d+) ho chuka hai — mila usse kam nahi ho sakta\. Sahi number daalo\./, '$1 already scanned — found cannot be less. Enter the right number.', 'स्कैन $1 हो चुका है — मिला उससे कम नहीं हो सकता। सही नंबर डालो।'],
+    [/⚠️ scan (\d+) hua hai/, '⚠️ $1 scanned', '⚠️ स्कैन $1 हुआ है'],
+    [/Sirf (\d+) baaki hai\./, 'Only $1 left.', 'सिर्फ $1 बाकी है।'],
+    [/Closed — (\d+) short/, 'Closed — $1 short', 'बंद — $1 कम'],
+    [/(\d+) scan abhi sync nahi hue\.\nPhir bhi logout\?/, '$1 scans not synced yet.\nLogout anyway?', '$1 स्कैन अभी सिंक नहीं हुए।\nफिर भी लॉगआउट?'],
+    [/✔ (.+) ka naya PIN set — usko batao/, '✔ New PIN set for $1 — tell them', '✔ $1 का नया PIN सेट — उसे बताओ'],
+    [/"([^"]*)" sheet me nahi mila/, '"$1" not found in sheet', '"$1" शीट में नहीं मिला'],
+    [/"([^"]*)" tab nahi mila\. Apps Script me setupSheets ek baar Run karo\./, '"$1" tab not found. Run setupSheets once in Apps Script.', '"$1" टैब नहीं मिला। Apps Script में setupSheets एक बार Run करो।']
+  ];
+  var I18X = null, I18C = {}, I18N_N = 0;
+  function tr(s) {
+    if (LANG === 'hl' || !s || !/[A-Za-z]/.test(s)) return s;
+    var ck = LANG + '|' + s; if (I18C.hasOwnProperty(ck)) return I18C[ck];
+    if (!I18X) {                // CAPS words (PENDING, OPEN, EXTRA…) only as a whole label, never inside product names
+      var map = {}; I18N.forEach(function (e) { map[e[0]] = e; });
+      var keys = Object.keys(map).filter(function (k) { return !/^[A-Z][A-Z-]*$/.test(k) && k !== 'IN PROGRESS'; }).sort(function (a, b) { return b.length - a.length; });
+      I18X = { map: map, rx: new RegExp('(^|[^A-Za-z])(' + keys.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')(?![A-Za-z])', 'g') };
+    }
+    var col = LANG === 'en' ? 1 : 2, out = String(s), tt = out.trim();
+    if (I18X.map.hasOwnProperty(tt)) { out = out.replace(tt, I18X.map[tt][col]); I18C[ck] = out; return out; }
+    I18T.forEach(function (t) { out = out.replace(t[0], t[col]); });
+    out = out.replace(I18X.rx, function (m, pre, k) { return pre + I18X.map[k][col]; });
+    if (++I18N_N > 4000) { I18C = {}; I18N_N = 0; }
+    I18C[ck] = out;
+    return out;
+  }
+  var NT = '.nm, #inUser, #aaName, #mAdmin, #pfWho, #mLine, #devCam, [data-nt], script, style';
+  function i18nNode(t, force) {
+    var p = t.parentNode;
+    if (!p || p.nodeType !== 1 || p.closest(NT)) return;
+    if (!force && t.__t === t.nodeValue) return;             // our own change
+    var orig = force && t.__o != null ? t.__o : t.nodeValue;
+    if (LANG === 'hl' && t.__o == null) return;               // never translated: already Hinglish
+    var out = tr(orig);
+    t.__o = orig; t.__t = out;
+    if (t.nodeValue !== out) t.nodeValue = out;
+  }
+  function i18nEl(el, force) {
+    if (!el) return;
+    if (el.nodeType === 3) return i18nNode(el, force);
+    if (el.nodeType !== 1 || el.closest(NT)) return;
+    [el].concat([].slice.call(el.querySelectorAll('[placeholder]'))).forEach(function (x) {
+      if (!x.hasAttribute('placeholder') || x.closest(NT)) return;
+      if (x.__ph == null) { if (LANG === 'hl') return; x.__ph = x.getAttribute('placeholder'); }
+      var v = tr(x.__ph); if (x.getAttribute('placeholder') !== v) x.setAttribute('placeholder', v);
+    });
+    var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false), n;
+    while ((n = w.nextNode())) i18nNode(n, force);
+  }
+  function langButtons() {
+    [].forEach.call(document.querySelectorAll('[data-lang]'), function (b) { b.classList.toggle('on', b.getAttribute('data-lang') === LANG); });
+    document.documentElement.lang = LANG === 'hi' ? 'hi' : 'en';
+  }
+  function setLang(v) {
+    LANG = v === 'en' || v === 'hi' ? v : 'hl';
+    pset('lang', LANG); I18C = {};
+    i18nEl(document.body, true);
+    langButtons();
+  }
+  function i18nStart() {
+    langButtons();
+    if (LANG !== 'hl') i18nEl(document.body, true);
+    new MutationObserver(function (recs) {
+      if (LANG === 'hl') return;
+      recs.forEach(function (r) {
+        if (r.type === 'characterData') i18nNode(r.target, false);
+        else for (var i = 0; i < r.addedNodes.length; i++) i18nEl(r.addedNodes[i], false);
+      });
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+    document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-lang]'); if (b) setLang(b.getAttribute('data-lang')); });
+  }
+
   /* ===================== state ===================== */
   var S = {
     cfg: pget('cfg', null), user: pget('user', null), set: pget('settings', { auto: false, sound: true }),
@@ -233,8 +580,8 @@
     if (!fresh.length) return;
     pset('seen', seen.concat(fresh.map(function (x) { return x.k; })).slice(-500));
     if (first && !seen.length) return;                                    // first load after login: no flood
-    if (fresh.length === 1) nat('notify', fresh[0].t, fresh[0].b);
-    else nat('notify', fresh.length + (seesAll() ? ' naye duplicate documents' : ' naye documents assign hue'), fresh.map(function (x) { return x.t.replace(/^.*?: /, ''); }).join(', '));
+    if (fresh.length === 1) nat('notify', tr(fresh[0].t), tr(fresh[0].b));
+    else nat('notify', tr(fresh.length + (seesAll() ? ' naye duplicate documents' : ' naye documents assign hue')), tr(fresh.map(function (x) { return x.t.replace(/^.*?: /, ''); }).join(', ')));
     feedback('warn');
     toast('🔔 ' + (fresh.length === 1 ? fresh[0].t : fresh.length + ' naye documents'));
   }
@@ -837,6 +1184,7 @@
   }
 
   function init() {
+    i18nStart();
     bind();
     if (!S.cfg) goSetup();
     else if (!S.user) goLogin();
