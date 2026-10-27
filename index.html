@@ -199,7 +199,8 @@ table.rt td.bad{color:var(--bad);font-weight:800}
   <div class="panel">
   <label for="inUser">Naam</label><select id="inUser"></select>
   <label for="inPin">PIN</label><input id="inPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
-  <button class="btn p w big" id="btnLogin">Login ▶</button></div>
+  <button class="btn p w big" id="btnLogin">Login ▶</button>
+  <div id="loginErr" class="hide" style="margin-top:12px;padding:10px 12px;border-radius:12px;background:#fef2f2;border:1px solid #fca5a5;color:#7f1d1d;font-size:14px;line-height:1.4"><div id="loginErrMsg"></div><button class="btn w" id="btnLoginRetry" style="margin-top:8px">⟳ Dobara try karo</button></div></div>
   <div class="trust"><span>📷 Camera se check</span><span>🔒 PIN login</span><span>📵 Offline bhi chalta hai</span></div>
   <button class="btn ghost w" id="btnReSetup">Server badlo (setup)</button>
 </section>

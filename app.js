@@ -140,6 +140,7 @@
   function goLogin() {
     S.user = null;
     show('vLogin'); fillUsers();
+    $('loginErr').classList.add('hide');
     busy('Server se connect ho raha hai…');
     api('ping').then(function (r) {
       S.users = r.users || []; pset('users', S.users);
@@ -148,7 +149,16 @@
       $('loginWh').textContent = S.wh ? '🏭 Warehouse: ' + S.wh : '';
       if (S.cfg && S.cfg.n) $('loginApp').textContent = S.cfg.n;
       fillUsers();
-    }).catch(function (e) { toast('⚠️ ' + e.message); }).then(function () { busy(false); });
+      if (!S.users.length) loginError('Sheet ke Users tab me koi Active = YES naam nahi hai.');
+    }).catch(function (e) { loginError(e.message); }).then(function () { busy(false); });
+  }
+  /* connection problem on the login screen stays visible (a toast is gone before anyone reads it) */
+  function loginError(m) {
+    var hint = /deploy|Anyone|jawab galat/i.test(m) ? '<br>Laptop: Apps Script → Deploy → Manage deployments → ✏ Edit → Execute as: <b>Me</b>, Who has access: <b>Anyone</b> → New version → Deploy.'
+      : /API key/i.test(m) ? '<br>Sheet menu → 📱 App setup QR → neeche "Server badlo (setup)" se QR dobara scan karo.'
+      : /Network|slow|band/i.test(m) ? '<br>Net check karo (WiFi / data), phir dobara try.' : '';
+    $('loginErrMsg').innerHTML = '⚠️ Server se naam nahi aaye: ' + esc(m) + hint;
+    $('loginErr').classList.remove('hide');
   }
   function fillUsers() {
     var cur = $('inUser').value, last = pget('lastName', '');
@@ -722,6 +732,7 @@
     $('btnLogin').onclick = doLogin;
     $('inPin').onkeydown = function (e) { if (e.key === 'Enter') doLogin(); };
     $('btnReSetup').onclick = goSetup;
+    $('btnLoginRetry').onclick = goLogin;
     $('tabPick').onclick = function () { S.tab = 'PICK'; renderDocs(); };
     $('tabInw').onclick = function () { S.tab = 'INWARD'; renderDocs(); };
     $('tabRep').onclick = function () { S.tab = 'REPORT'; renderDocs(); loadReport(); };
